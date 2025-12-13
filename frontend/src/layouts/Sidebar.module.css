@@ -1,12 +1,16 @@
 .sidebar {
-    height: 100%;
-    width: 100%;
+    padding: 1em;
+    background-color: white;
     display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2em;
+    border-radius: 12px;
 }
 
 .nav {
     display: flex;
-    gap: 0.5rem;
+    gap: 1.5rem;
 }
 
 /* Estilo base dos links */
@@ -14,26 +18,55 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.75rem 1rem;
-    border-radius: 10px;
+    padding: 20px 1rem;
+    opacity: 1;
+    border-radius: 100px;
     text-decoration: none;
-    color: #94a3b8;
+    color: var(--black-color);
     font-weight: 500;
     transition: all 0.2s ease;
 }
 
+.linkButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    border: none;
+    border-radius: 100px;
+    background-color: transparent;
+    color: var(--black-color);
+    transition: all 0.2s ease;
+}
+
+.linkButton:hover {
+    background: var(--black-color);
+    color: var(--white-color);
+    transform: scale(1.05);
+}
+
 .link:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: white;
+    background: var(--black-color);
+    color: var(--white-color);
+    transform: scale(1.1);
 }
 
 /* Estilo quando o link está ATIVO (página atual) */
 .activeLink {
     composes: link;
-    /* Herda os estilos base de .link */
-    background: rgba(124, 58, 237, 0.15);
-    /* Roxo sutil */
-    color: #c084fc;
-    /* Texto roxo claro */
-    border: 1px solid rgba(124, 58, 237, 0.2);
+    background: var(--black-color);
+    opacity: .5;
+    color: var(--white-color);
+}
+
+.navButtons {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+}
+
+.imgPerfil {
+    width: 52px;
+    height: 52px;
+    border-radius: 200px;
 }
