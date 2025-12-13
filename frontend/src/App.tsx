@@ -1,20 +1,40 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import {Login} from './pages/auth/Login';
+// Importe o Layout que acabamos de criar
+import { Layout } from './layouts/Layout';
 
-// Placeholders para testarmos a navegação
-const Login = () => <div className="p-10 text-xl font-bold">Tela de LoAAAgin TESTEEE</div>;
-const AdminDashboard = () => <div className="p-10 text-xl text-blue-600">Painel do Técnico/Admin</div>;
-const ClientPortal = () => <div className="p-10 text-xl text-green-600">Portal do Cliente</div>;
+// Placeholders (depois você cria os arquivos reais em src/pages/admin/...)
+const AdminDashboard = () => <h1>Visão Geral do Dashboard</h1>;
+const TicketsList = () => <h1>Lista de Tickets</h1>;
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Rota Pública */}
+        {/* =====================================================
+            ROTAS PÚBLICAS (Sem Sidebar)
+        ====================================================== */}
         <Route path="/login" element={<Login />} />
-        
-        {/* Rotas Privadas (Futuramente protegidas por AuthGuard) */}
-        <Route path="/app" element={<AdminDashboard />} />
-        <Route path="/portal" element={<ClientPortal />} />
+
+
+        {/* =====================================================
+            ROTAS PRIVADAS (Com Sidebar)
+            Todas as rotas aqui dentro usarão o <Layout />
+        ====================================================== */}
+        <Route path="/app" element={<Layout />}>
+           {/* Rota Index: É renderizada quando acessa exatamente "/app".
+             Geralmente é o Dashboard.
+           */}
+           <Route index element={<AdminDashboard />} />
+
+           {/* Rotas Filhas: Serão renderizadas dentro do Outlet do Layout.
+             O caminho final será /app/tickets
+           */}
+           <Route path="tickets" element={<TicketsList />} />
+           
+           {/* Adicione outras aqui: clientes, ativos, etc */}
+        </Route>
+
 
         {/* Redirecionamento padrão */}
         <Route path="*" element={<Navigate to="/login" replace />} />
