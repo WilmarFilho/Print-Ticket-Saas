@@ -1,0 +1,6 @@
+node_modules
+dist
+.git
+.env
+.DS_Store
+bun.lockb # Opcional: se quiser garantir que o lockfile seja copiado apenas explicitamente
