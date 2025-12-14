@@ -5,9 +5,9 @@ import styles from './Layout.module.css';
 export function Layout() {
   return (
     <div className={styles.container}>
-      <div className={styles.sidebarArea}>
+      <header className={styles.sidebarArea}>
         <Sidebar />
-      </div>
+      </header>
 
       <main className={styles.contentArea}>
         <Outlet />

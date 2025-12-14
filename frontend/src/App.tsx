@@ -4,7 +4,6 @@ import { Layout } from './layouts/Layout';
 import { Tickets } from './pages/tickets/Tickets';
 import { Clients } from './pages/clients/Clients';
 
-// Placeholders (depois você cria os arquivos reais em src/pages/admin/...)
 const AdminDashboard = () => <h1>Visão Geral do Dashboard</h1>;
 const TecnicosList = () => <h1>Lista de Tecnicos</h1>;
 const AtivosList = () => <h1>Lista de Ativos</h1>;

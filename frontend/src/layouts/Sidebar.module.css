@@ -4,7 +4,6 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 2em;
     border-radius: 12px;
     max-width: 1500px;
     margin: 0 auto;
@@ -20,11 +19,9 @@
     align-items: center;
     gap: 0.75rem;
     padding: 20px 1rem;
-    opacity: 1;
     border-radius: 100px;
     text-decoration: none;
     color: var(--black-color);
-    font-weight: 500;
     transition: all 0.2s ease;
 }
 
@@ -40,16 +37,10 @@
     transition: all 0.2s ease;
 }
 
-.linkButton:hover {
+.linkButton:hover, .link:hover {
     background: var(--black-color);
     color: var(--white-color);
     transform: scale(1.05);
-}
-
-.link:hover {
-    background: var(--black-color);
-    color: var(--white-color);
-    transform: scale(1.1);
 }
 
 .activeLink {
