@@ -1,0 +1,105 @@
+.card {
+    background: white;
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+    border: 1px solid rgba(0,0,0,0.04);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Centralizado fica melhor para perfil */
+    text-align: center;
+    position: relative;
+    gap: 1rem;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.06);
+    border-color: rgba(0,0,0,0.1);
+}
+
+.optionsBtn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: transparent;
+    border: none;
+    color: #cbd5e1;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    transition: 0.2s;
+}
+
+.optionsBtn:hover {
+    background: #f1f5f9;
+    color: #050810;
+}
+
+/* Ícone de destaque (Avatar simbólico) */
+.iconBox {
+    width: 64px;
+    height: 64px;
+    background: #f1f5f9; /* Fundo cinza claro */
+    border-radius: 50%; /* Redondo */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #050810;
+    margin-top: 0.5rem;
+}
+
+.info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    width: 100%;
+}
+
+.name {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.email {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #94a3b8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Badge de Status */
+.statusBadge {
+    padding: 0.35rem 0.85rem;
+    border-radius: 100px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: auto; /* Empurra para baixo se o card crescer */
+}
+
+.status_ativo {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status_inativo {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+/* Bolinha colorida dentro do status */
+.statusDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: currentColor;
+}

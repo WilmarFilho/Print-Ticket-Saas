@@ -3,9 +3,9 @@ import { Login } from './pages/auth/Login';
 import { Layout } from './layouts/Layout';
 import { Tickets } from './pages/tickets/Tickets';
 import { Clients } from './pages/clients/Clients';
+import { Technicians } from './pages/technicians/Technicians';
 
 const AdminDashboard = () => <h1>Visão Geral do Dashboard</h1>;
-const TecnicosList = () => <h1>Lista de Tecnicos</h1>;
 const AtivosList = () => <h1>Lista de Ativos</h1>;
 
 function App() {
@@ -23,7 +23,7 @@ function App() {
 
           <Route path="clientes" element={<Clients />} />
 
-          <Route path="tecnicos" element={<TecnicosList />} />
+          <Route path="tecnicos" element={<Technicians />} />
 
           <Route path="ativos" element={<AtivosList />} />
 
