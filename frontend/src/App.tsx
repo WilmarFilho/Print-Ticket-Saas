@@ -1,10 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Login } from './pages/auth/Login';
 import { Layout } from './layouts/Layout';
+import { Tickets } from './pages/tickets/Tickets';
 
 // Placeholders (depois você cria os arquivos reais em src/pages/admin/...)
 const AdminDashboard = () => <h1>Visão Geral do Dashboard</h1>;
-const TicketsList = () => <h1>Lista de Tickets</h1>;
 const ClientesList = () => <h1>Lista de Clientes</h1>;
 const TecnicosList = () => <h1>Lista de Tecnicos</h1>;
 const AtivosList = () => <h1>Lista de Ativos</h1>;
@@ -20,7 +20,7 @@ function App() {
 
           <Route index element={<AdminDashboard />} />
 
-          <Route path="tickets" element={<TicketsList />} />
+          <Route path="tickets" element={<Tickets />} />
 
           <Route path="clientes" element={<ClientesList />} />
 

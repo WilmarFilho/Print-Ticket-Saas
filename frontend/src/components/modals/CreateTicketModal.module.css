@@ -1,0 +1,175 @@
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal {
+    background: white;
+    width: 600px;
+    max-width: 90%;
+    border-radius: 20px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.closeBtn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #999;
+}
+
+/* --- LÓGICA DO WIZARD (SLIDER) --- */
+.wizardBody {
+    padding: 0;
+    width: 100%;
+    /* Define uma altura mínima para o modal não ficar "dançando" de tamanho */
+    min-height: 320px; 
+    display: flex;
+    flex-direction: column;
+}
+
+/* Container do passo atual */
+.stepContainer {
+    padding: 2rem;
+    width: 100%;
+    box-sizing: border-box;
+    /* Animação suave sempre que o passo mudar */
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* --- FORMULÁRIOS --- */
+.formGroup {
+    margin-bottom: 1.25rem;
+}
+
+.label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #444;
+}
+
+.input, .select, .textarea {
+    width: 100%;
+    padding: 0.875rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    background: #f8fafc;
+    transition: all 0.2s;
+    box-sizing: border-box;
+}
+
+.input:focus, .select:focus, .textarea:focus {
+    outline: none;
+    border-color: var(--black-color);
+    background: white;
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+}
+
+.textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+/* --- FOOTER / BOTÕES --- */
+.footer {
+    padding: 1.5rem;
+    background: #f9fafb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.btnSecondary {
+    padding: 0.75rem 1.5rem;
+    border: 1px solid #e2e8f0;
+    background: white;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: 0.2s;
+}
+
+.btnPrimary {
+    padding: 0.75rem 2rem;
+    background: var(--black-color);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btnPrimary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Indicador de Passos (Bolinhas) */
+.stepIndicator {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    transition: 0.3s;
+}
+
+.dotActive {
+    background: var(--black-color);
+    transform: scale(1.2);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
