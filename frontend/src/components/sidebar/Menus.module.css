@@ -1,0 +1,115 @@
+/* Container do Menu Flutuante */
+.popover {
+  position: absolute;
+  top: 120%; /* Aparece acima do botão */
+  left: 50%;
+  transform: translateX(-50%); /* Centraliza em relação ao botão */
+  
+  width: 280px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  border: 1px solid #f1f5f9;
+  z-index: 50;
+  
+  /* Animação de entrada */
+  animation: slideUp 0.2s ease-out;
+  overflow: hidden;
+}
+
+/* Triângulo (setinha) apontando para baixo */
+.popover::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-bottom: 1px solid #f1f5f9;
+  border-right: 1px solid #f1f5f9;
+}
+
+/* Cabeçalho do Menu */
+.header {
+  padding: 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #1e293b;
+  background: #f8fafc;
+}
+
+/* Lista de Itens */
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: #475569;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+}
+
+.item:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.itemDanger {
+  color: #ef4444;
+}
+
+.itemDanger:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+/* Notificações Específicas */
+.notificationItem {
+  padding: 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.notificationItem:hover {
+  background: #f8fafc;
+}
+
+.notificationItem:last-child {
+  border-bottom: none;
+}
+
+.notifTitle {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #334155;
+  margin-bottom: 2px;
+}
+
+.notifTime {
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
