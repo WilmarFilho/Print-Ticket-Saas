@@ -5,8 +5,7 @@ import { Tickets } from './pages/tickets/Tickets';
 import { Clients } from './pages/clients/Clients';
 import { Technicians } from './pages/technicians/Technicians';
 import { Printers } from './pages/printers/Printers';
-
-const AdminDashboard = () => <h1>Visão Geral do Dashboard</h1>;
+import { Dashboard } from './pages/dashboard/Dashboard';
 
 function App() {
   return (
@@ -17,7 +16,7 @@ function App() {
 
         <Route path="/app" element={<Layout />}>
 
-          <Route index element={<AdminDashboard />} />
+          <Route index element={<Dashboard />} />
 
           <Route path="tickets" element={<Tickets />} />
 
