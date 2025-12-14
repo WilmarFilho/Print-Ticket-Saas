@@ -1,0 +1,33 @@
+.searchWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.searchIcon {
+    position: absolute;
+    left: 1rem;
+    color: #94a3b8;
+    pointer-events: none;
+}
+
+.searchInput {
+    padding: 0.75rem 1rem 0.75rem 2.8rem;
+    border-radius: 100px;
+    border: 1px solid #e2e8f0;
+    background-color: white;
+    font-family: inherit;
+    font-size: 0.9rem;
+    width: 300px;
+    transition: all 0.2s;
+    outline: none;
+}
+
+.searchInput:focus {
+    border-color: var(--black-color);
+    box-shadow: 0 0 0 3px rgba(0,0,0,0.05);
+}
+
+.searchInput::placeholder {
+    color: #cbd5e1;
+}

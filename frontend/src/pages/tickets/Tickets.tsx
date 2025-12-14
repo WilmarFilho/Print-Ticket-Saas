@@ -1,10 +1,14 @@
 import { useState } from 'react';
-import { Plus, ChevronDown, ChevronUp, Printer, Calendar, User, Search } from 'lucide-react'; // Adicionei o Search
+import { Plus, ChevronDown, ChevronUp, Printer, Calendar, User } from 'lucide-react'; 
+import { useAtomValue, useSetAtom } from 'jotai'; // Novos hooks do Jotai
+import { searchTermAtom, createTicketModalAtom } from '../../state/atoms';
 import styles from './Tickets.module.css';
 import { CreateTicketModal } from '../../components/modals/CreateTicketModal';
+import { PageHeader } from '../../components/ui/PageHeader';
 
-// Mock de dados
+// Mock de dados (MANTÉM IGUAL)
 const MOCK_TICKETS = [
+  // ... MOCK_TICKETS continua o mesmo ...
   { 
     id: '#TK-9021', 
     titulo: 'Impressora não puxa papel', 
@@ -38,19 +42,24 @@ const MOCK_TICKETS = [
 ];
 
 export function Tickets() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [expandedTicketId, setExpandedTicketId] = useState<string | null>(null);
   
-  // 1. Estado da Busca
-  const [searchTerm, setSearchTerm] = useState('');
+  // LEITURA: useAtomValue (equivalente ao useRecoilValue)
+  const searchTerm = useAtomValue(searchTermAtom); 
+  
+  // ESCRITA: useSetAtom (equivalente ao useSetRecoilState)
+  const setIsModalOpen = useSetAtom(createTicketModalAtom);
 
   const toggleExpand = (id: string) => {
     setExpandedTicketId(current => current === id ? null : id);
   };
 
-  // 2. Lógica de Filtragem (Case Insensitive)
+  // Lógica de Filtragem agora usa o Recoil
   const filteredTickets = MOCK_TICKETS.filter(ticket => {
     const searchLower = searchTerm.toLowerCase();
+    // Apenas filtra se o estado da busca não estiver vazio
+    if (!searchLower) return true;
+    
     return (
         ticket.id.toLowerCase().includes(searchLower) ||
         ticket.cliente.toLowerCase().includes(searchLower) ||
@@ -61,40 +70,20 @@ export function Tickets() {
   return (
     <div className={styles.container}>
       
-      {/* Header Fixo */}
-      <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}>Tickets de Serviço</h1>
-          <p style={{color: '#64748b', fontSize: '0.9rem'}}>Gerencie os chamados técnicos</p>
-        </div>
-        
-        {/* Container de Ações da Direita */}
-        <div className={styles.headerActions}>
-            
-            {/* Input de Busca */}
-            <div className={styles.searchWrapper}>
-                <Search className={styles.searchIcon} size={18} />
-                <input 
-                    type="text" 
-                    className={styles.searchInput} 
-                    placeholder="Buscar por ID, Cliente ou Ativo..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
-            </div>
+      {/* HEADER COMPONENTIZADO */}
+      <PageHeader
+        title="Tickets de Serviço"
+        description="Gerencie os chamados técnicos"
+        actionIcon={<Plus size={20} />}
+        actionLabel="Novo Ticket"
+        onActionClick={() => setIsModalOpen(true)} // Ação que muda o estado Recoil
+        searchPlaceholder="Buscar por ID, Cliente ou Ativo..."
+        pageKey="tickets" // Define a página atual
+      />
 
-            {/* Botão Novo */}
-            <button className={styles.newBtn} onClick={() => setIsModalOpen(true)}>
-                <Plus size={20} />
-                Novo Ticket
-            </button>
-        </div>
-      </div>
-
-      {/* Lista com Scroll (Usando filteredTickets) */}
+      {/* Lista com Scroll */}
       <div className={styles.listContainer}>
         
-        {/* Feedback visual se não achar nada */}
         {filteredTickets.length === 0 && (
             <div style={{textAlign: 'center', color: '#94a3b8', marginTop: '2rem'}}>
                 Nenhum ticket encontrado para "{searchTerm}"
@@ -107,7 +96,7 @@ export function Tickets() {
             className={`${styles.ticketCard} ${expandedTicketId === ticket.id ? styles.expanded : ''}`}
             onClick={() => toggleExpand(ticket.id)}
           >
-            {/* Resumo */}
+            {/* ... Conteúdo do Card de Ticket (MANTÉM IGUAL) ... */}
             <div className={styles.cardHeader}>
               <div>
                  <div className={styles.idBadge}>{ticket.id}</div>
@@ -127,7 +116,7 @@ export function Tickets() {
               </div>
             </div>
 
-            {/* Detalhes Expandidos */}
+            {/* Detalhes Expandidos (MANTÉM IGUAL) */}
             <div className={styles.expandedContent} onClick={e => e.stopPropagation()}>
                <div className={styles.detailGrid}>
                   <div>
@@ -158,8 +147,9 @@ export function Tickets() {
         ))}
       </div>
 
+      {/* Modal agora lê o estado do Recoil */}
       <CreateTicketModal 
-        isOpen={isModalOpen} 
+        isOpen={useAtomValue(createTicketModalAtom)}
         onClose={() => setIsModalOpen(false)} 
       />
 
