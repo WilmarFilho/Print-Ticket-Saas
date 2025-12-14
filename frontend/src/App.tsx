@@ -4,9 +4,9 @@ import { Layout } from './layouts/Layout';
 import { Tickets } from './pages/tickets/Tickets';
 import { Clients } from './pages/clients/Clients';
 import { Technicians } from './pages/technicians/Technicians';
+import { Printers } from './pages/printers/Printers';
 
 const AdminDashboard = () => <h1>Visão Geral do Dashboard</h1>;
-const AtivosList = () => <h1>Lista de Ativos</h1>;
 
 function App() {
   return (
@@ -25,7 +25,7 @@ function App() {
 
           <Route path="tecnicos" element={<Technicians />} />
 
-          <Route path="ativos" element={<AtivosList />} />
+          <Route path="ativos" element={<Printers />} />
 
         </Route>
 

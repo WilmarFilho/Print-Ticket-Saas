@@ -37,7 +37,7 @@ export function Sidebar() {
 
         <NavLink to="/app/ativos" className={getLinkClass}>
           <Printer size={20} />
-          Ativos
+          Impressoras
         </NavLink>
       </nav>
 
