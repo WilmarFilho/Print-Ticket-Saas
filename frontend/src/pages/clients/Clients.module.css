@@ -1,0 +1,214 @@
+/* --- ESTRUTURA BASE (Igual Tickets) --- */
+.container {
+    width: 100%;
+    max-width: 1500px;
+    margin: 0 auto;
+    height: 100%; 
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; 
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: var(--primary-color);
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    flex-shrink: 0;
+}
+
+.title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--black-color);
+    margin: 0;
+}
+
+/* --- HEADER ACTIONS (Busca + Botão) --- */
+.headerActions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.searchWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.searchIcon {
+    position: absolute;
+    left: 1rem;
+    color: #94a3b8;
+    pointer-events: none;
+}
+
+.searchInput {
+    padding: 0.75rem 1rem 0.75rem 2.8rem;
+    border-radius: 100px;
+    border: 1px solid #e2e8f0;
+    background-color: white;
+    font-family: inherit;
+    font-size: 0.9rem;
+    width: 300px;
+    transition: all 0.2s;
+    outline: none;
+}
+
+.searchInput:focus {
+    border-color: var(--black-color);
+    box-shadow: 0 0 0 3px rgba(0,0,0,0.05);
+}
+
+.newBtn {
+    background-color: var(--black-color);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 100px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: transform 0.2s;
+}
+
+.newBtn:hover {
+    transform: scale(1.06);
+}
+
+/* --- GRID DE BLOCOS (Diferença Principal) --- */
+.gridContainer {
+    display: grid;
+    /* Cria colunas automáticas com largura mínima de 320px */
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); 
+    gap: 1.5rem;
+    flex-grow: 1; 
+    overflow-y: auto; 
+    padding-bottom: 2rem;
+    padding-right: 0.5rem;
+}
+
+/* Scrollbar Bonita */
+.gridContainer::-webkit-scrollbar {
+    width: 6px;
+}
+.gridContainer::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 20px;
+}
+
+/* --- CARD DO CLIENTE --- */
+.clientCard {
+    background: white;
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+    border: 1px solid rgba(0,0,0,0.04);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 220px; /* Altura fixa para uniformidade */
+    position: relative;
+}
+
+.clientCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.06);
+    border-color: rgba(0,0,0,0.1);
+}
+
+.cardHeader {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.iconBox {
+    width: 48px;
+    height: 48px;
+    background: #f1f5f9;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--black-color);
+}
+
+.cardInfo h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.docText {
+    margin: 4px 0 0 0;
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+.optionsBtn {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: transparent;
+    border: none;
+    color: #cbd5e1;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    transition: 0.2s;
+}
+
+.optionsBtn:hover {
+    background: #f1f5f9;
+    color: var(--black-color);
+}
+
+/* BODY DO CARD */
+.cardBody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.contactRow {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+/* FOOTER / STATS */
+.cardFooter {
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    gap: 1rem;
+}
+
+.statBadge {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #475569;
+    background: #f8fafc;
+    padding: 4px 10px;
+    border-radius: 100px;
+}

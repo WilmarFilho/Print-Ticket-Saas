@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Plus, ChevronDown, ChevronUp, Printer, Calendar, User } from 'lucide-react';
+import { Plus, ChevronDown, ChevronUp, Printer, Calendar, User, Search } from 'lucide-react'; // Adicionei o Search
 import styles from './Tickets.module.css';
 import { CreateTicketModal } from '../../components/modals/CreateTicketModal';
 
-// Mock de dados (enquanto não temos API)
+// Mock de dados
 const MOCK_TICKETS = [
   { 
     id: '#TK-9021', 
@@ -35,71 +35,79 @@ const MOCK_TICKETS = [
     descricao: 'Erro intermitente no painel. Reinicia e volta, mas trava depois de 10 paginas.',
     tecnico: 'Ana Paula'
   },
-  { 
-    id: '#TK-90211', 
-    titulo: 'Impressora não puxa papel', 
-    cliente: 'Advocacia Silva', 
-    ativo: 'Kyocera Ecosys M2040', 
-    status: 'aberto', 
-    data: '12/12/2025',
-    descricao: 'A impressora faz barulho de engrenagem mas o papel não sobe. Aparentemente rolete gasto.',
-    tecnico: 'Pendente'
-  },
-  { 
-    id: '#TK-90201', 
-    titulo: 'Troca de Toner Ciano', 
-    cliente: 'Hospital Central', 
-    ativo: 'HP Laserjet Pro', 
-    status: 'resolvido', 
-    data: '10/12/2025',
-    descricao: 'Solicitação de troca de suprimento preventiva.',
-    tecnico: 'Carlos Souza'
-  },
-  { 
-    id: '#TK-90191', 
-    titulo: 'Erro de fusor 50.1', 
-    cliente: 'Supermercado Dia', 
-    ativo: 'Brother 8157', 
-    status: 'andamento', 
-    data: '09/12/2025',
-    descricao: 'Erro intermitente no painel. Reinicia e volta, mas trava depois de 10 paginas.',
-    tecnico: 'Ana Paula'
-  },
 ];
 
 export function Tickets() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [expandedTicketId, setExpandedTicketId] = useState<string | null>(null);
+  
+  // 1. Estado da Busca
+  const [searchTerm, setSearchTerm] = useState('');
 
   const toggleExpand = (id: string) => {
     setExpandedTicketId(current => current === id ? null : id);
   };
 
+  // 2. Lógica de Filtragem (Case Insensitive)
+  const filteredTickets = MOCK_TICKETS.filter(ticket => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+        ticket.id.toLowerCase().includes(searchLower) ||
+        ticket.cliente.toLowerCase().includes(searchLower) ||
+        ticket.ativo.toLowerCase().includes(searchLower)
+    );
+  });
+
   return (
     <div className={styles.container}>
       
-      {/* Header da Página */}
+      {/* Header Fixo */}
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Tickets de Serviço</h1>
           <p style={{color: '#64748b', fontSize: '0.9rem'}}>Gerencie os chamados técnicos</p>
         </div>
         
-        <button className={styles.newBtn} onClick={() => setIsModalOpen(true)}>
-          <Plus size={20} />
-          Novo Ticket
-        </button>
+        {/* Container de Ações da Direita */}
+        <div className={styles.headerActions}>
+            
+            {/* Input de Busca */}
+            <div className={styles.searchWrapper}>
+                <Search className={styles.searchIcon} size={18} />
+                <input 
+                    type="text" 
+                    className={styles.searchInput} 
+                    placeholder="Buscar por ID, Cliente ou Ativo..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
+
+            {/* Botão Novo */}
+            <button className={styles.newBtn} onClick={() => setIsModalOpen(true)}>
+                <Plus size={20} />
+                Novo Ticket
+            </button>
+        </div>
       </div>
 
-      {/* Lista de Tickets */}
+      {/* Lista com Scroll (Usando filteredTickets) */}
       <div className={styles.listContainer}>
-        {MOCK_TICKETS.map(ticket => (
+        
+        {/* Feedback visual se não achar nada */}
+        {filteredTickets.length === 0 && (
+            <div style={{textAlign: 'center', color: '#94a3b8', marginTop: '2rem'}}>
+                Nenhum ticket encontrado para "{searchTerm}"
+            </div>
+        )}
+
+        {filteredTickets.map(ticket => (
           <div 
             key={ticket.id} 
             className={`${styles.ticketCard} ${expandedTicketId === ticket.id ? styles.expanded : ''}`}
             onClick={() => toggleExpand(ticket.id)}
           >
-            {/* Resumo (Sempre visível) */}
+            {/* Resumo */}
             <div className={styles.cardHeader}>
               <div>
                  <div className={styles.idBadge}>{ticket.id}</div>
@@ -119,7 +127,7 @@ export function Tickets() {
               </div>
             </div>
 
-            {/* Detalhes (Slide Down) */}
+            {/* Detalhes Expandidos */}
             <div className={styles.expandedContent} onClick={e => e.stopPropagation()}>
                <div className={styles.detailGrid}>
                   <div>
@@ -150,7 +158,6 @@ export function Tickets() {
         ))}
       </div>
 
-      {/* Modal */}
       <CreateTicketModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
