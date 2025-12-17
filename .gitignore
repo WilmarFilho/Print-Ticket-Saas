@@ -1,4 +1,59 @@
-node_modules
-dist
+# ------------------------------------------------------
+# DEPENDÊNCIAS & LOGS (Vale para Front e Back)
+# ------------------------------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# O Bun recomenda comitar o 'bun.lockb', então NÃO o ignore.
+# Se preferir ignorar, descomente a linha abaixo:
+# bun.lockb
+
+# ------------------------------------------------------
+# SEGURANÇA & VARIÁVEIS DE AMBIENTE (CRÍTICO)
+# ------------------------------------------------------
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+!.env.example
+
+# ------------------------------------------------------
+# BACKEND (NestJS)
+# ------------------------------------------------------
+/backend/dist/
+/backend/coverage/
+/backend/test-report.xml
+
+# ------------------------------------------------------
+# FRONTEND (Next.js / React / Vite)
+# ------------------------------------------------------
+/frontend/.next/
+/frontend/out/
+/frontend/build/
+/frontend/dist/
+/frontend/.vercel/
+*.tsbuildinfo
+next-env.d.ts
+
+# ------------------------------------------------------
+# DOCKER & DATABASE
+# ------------------------------------------------------
+.docker/
+postgres_data/
+mysql_data/
+mongo_data/
+
+# ------------------------------------------------------
+# SISTEMA OPERACIONAL & IDE
+# ------------------------------------------------------
 .DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
