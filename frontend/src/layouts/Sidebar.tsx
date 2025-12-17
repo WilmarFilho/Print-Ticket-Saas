@@ -1,17 +1,19 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { 
-  LayoutDashboard, Ticket, Settings, Users, 
-  Layers, BellRing, Wrench, Printer 
+import {
+  LayoutDashboard, Ticket, Settings, Users,
+  Layers, BellRing, Wrench, Printer
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
 import { SettingsMenu, NotificationsMenu } from '../components/sidebar/SidebarMenus'; // Ajuste o import conforme sua pasta
 import { useClickOutside } from '../hooks/useClickOutside'; // Ajuste o import
 import { supabase } from '../lib/supabase'; // Para o logout
+import { useSetAtom } from 'jotai';
+import { sessionAtom } from '../state/atoms';
 
 export function Sidebar() {
   const navigate = useNavigate();
-  
+
   // Controle de qual menu está aberto ('notifications' | 'settings' | null)
   const [activeMenu, setActiveMenu] = useState<'notifications' | 'settings' | null>(null);
 
@@ -26,8 +28,12 @@ export function Sidebar() {
     setActiveMenu(current => current === menu ? null : menu);
   };
 
+  // Hooks para limpar estado visualmente se quiser (opcional, o reload faz isso)
+  const setSession = useSetAtom(sessionAtom);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    setSession(null); // Limpa atom de sessão
     navigate('/login');
   };
 
@@ -64,26 +70,26 @@ export function Sidebar() {
           Se clicar fora desse container, os menus fecham.
       */}
       <article className={styles.navButtons} ref={navRef}>
-        
+
         {/* --- BOTÃO NOTIFICAÇÕES --- */}
         <div style={{ position: 'relative' }}>
           {activeMenu === 'notifications' && <NotificationsMenu />}
-          
-          <button 
+
+          <button
             className={`${styles.linkButton} ${activeMenu === 'notifications' ? styles.activeButton : ''}`}
             onClick={() => toggleMenu('notifications')}
           >
             <BellRing size={20} />
             {/* Bolinha vermelha se tiver notificação (opcional) */}
-            <span style={{position:'absolute', top: 8, right: 8, width:8, height:8, background:'#ef4444', borderRadius:'50%', border:'2px solid white'}}></span>
+            <span style={{ position: 'absolute', top: 8, right: 8, width: 8, height: 8, background: '#ef4444', borderRadius: '50%', border: '2px solid white' }}></span>
           </button>
         </div>
 
         {/* --- BOTÃO SETTINGS --- */}
         <div style={{ position: 'relative' }}>
           {activeMenu === 'settings' && <SettingsMenu onLogout={handleLogout} />}
-          
-          <button 
+
+          <button
             className={`${styles.linkButton} ${activeMenu === 'settings' ? styles.activeButton : ''}`}
             onClick={() => toggleMenu('settings')}
           >

@@ -1,0 +1,3179 @@
+This file is a merged representation of a subset of the codebase, containing files not matching ignore patterns, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching these patterns are excluded: **/*.lock, **/*.svg, **/*.png, **/public/**, **/.next/**, **/dist/**, **/node_modules/**
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.dockerignore
+Dockerfile
+eslint.config.js
+index.html
+nginx.conf
+package.json
+src/App.tsx
+src/components/cards/ClientCard.module.css
+src/components/cards/ClientCard.tsx
+src/components/cards/PrinterCard.module.css
+src/components/cards/PrinterCard.tsx
+src/components/cards/TechnicianCard.module.css
+src/components/cards/TechnicianCard.tsx
+src/components/cards/TicketCard.module.css
+src/components/cards/TicketCard.tsx
+src/components/modals/CreateTicketModal.module.css
+src/components/modals/CreateTicketModal.tsx
+src/components/sidebar/Menus.module.css
+src/components/sidebar/SidebarMenus.tsx
+src/components/ui/PageHeader.module.css
+src/components/ui/PageHeader.tsx
+src/components/ui/PrimaryButton.module.css
+src/components/ui/PrimaryButton.tsx
+src/components/ui/SearchInput.module.css
+src/components/ui/SearchInput.tsx
+src/global.css
+src/hooks/useClickOutside.ts
+src/layouts/Layout.module.css
+src/layouts/Layout.tsx
+src/layouts/Sidebar.module.css
+src/layouts/Sidebar.tsx
+src/lib/supabase.ts
+src/main.tsx
+src/pages/auth/Login.tsx
+src/pages/clients/Clients.module.css
+src/pages/clients/Clients.tsx
+src/pages/dashboard/Dashboard.module.css
+src/pages/dashboard/Dashboard.tsx
+src/pages/printers/Printers.module.css
+src/pages/printers/Printers.tsx
+src/pages/technicians/Technicians.module.css
+src/pages/technicians/Technicians.tsx
+src/pages/tickets/Tickets.module.css
+src/pages/tickets/Tickets.tsx
+src/state/atoms.ts
+src/types/client.ts
+src/types/printer.ts
+src/types/techinicians.ts
+src/types/ticket.ts
+tsconfig.app.json
+tsconfig.json
+tsconfig.node.json
+vite.config.ts
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".dockerignore">
+node_modules
+dist
+.git
+.env
+.DS_Store
+bun.lockb # Opcional: se quiser garantir que o lockfile seja copiado apenas explicitamente
+</file>
+
+<file path="Dockerfile">
+# --- BASE ---
+# Usamos a imagem oficial do Bun
+FROM oven/bun:1 AS base
+WORKDIR /app
+
+# Copiamos apenas os arquivos de dependência primeiro para aproveitar o cache do Docker
+COPY package.json bun.lockb* ./
+
+# Instalamos as dependências.
+# --frozen-lockfile garante que instalamos exatamente as versões do lockfile
+RUN bun install --frozen-lockfile
+
+# --- STAGE DE DESENVOLVIMENTO (Dev) ---
+FROM base AS dev
+# A porta padrão do Vite
+EXPOSE 5173
+# Rodamos o script "dev" definido no seu package.json, forçando o host para o Docker aceitar conexões
+CMD ["bun", "run", "dev", "--host"]
+
+# --- STAGE DE BUILD (Prod Builder) ---
+FROM base AS build
+# Copia o restante do código fonte
+COPY . .
+# Roda o script "build" do seu package.json (tsc -b && vite build)
+RUN bun run build
+
+# --- STAGE FINAL (Produção) ---
+FROM nginx:alpine AS prod
+# Copia apenas os arquivos estáticos gerados na pasta 'dist' para o Nginx
+COPY --from=build /app/dist /usr/share/nginx/html
+# Copia a configuração customizada do Nginx (vamos criar abaixo)
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+</file>
+
+<file path="eslint.config.js">
+import js from '@eslint/js'
+import globals from 'globals'
+import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
+import tseslint from 'typescript-eslint'
+import { defineConfig, globalIgnores } from 'eslint/config'
+
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      js.configs.recommended,
+      tseslint.configs.recommended,
+      reactHooks.configs.flat.recommended,
+      reactRefresh.configs.vite,
+    ],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.browser,
+    },
+  },
+])
+</file>
+
+<file path="index.html">
+<!doctype html>
+<html lang="pt-br">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+    rel="stylesheet">
+  <title>Print Ticket</title>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
+</html>
+</file>
+
+<file path="nginx.conf">
+server {
+    listen 80;
+    
+    location / {
+        root /usr/share/nginx/html;
+        index index.html index.htm;
+        try_files $uri $uri/ /index.html;
+    }
+
+    location ~* \.(?:ico|css|js|gif|jpe?g|png)$ {
+        root /usr/share/nginx/html;
+        expires 1y;
+        add_header Cache-Control "public";
+    }
+}
+</file>
+
+<file path="package.json">
+{
+  "name": "print-ticket",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run vite --host",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.87.1",
+    "axios": "^1.13.2",
+    "jotai": "^2.16.0",
+    "lucide-react": "^0.561.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.10.1",
+    "recharts": "^3.5.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.4",
+    "vite": "^7.2.4"
+  }
+}
+</file>
+
+<file path="src/App.tsx">
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Login } from './pages/auth/Login';
+import { Layout } from './layouts/Layout';
+import { Tickets } from './pages/tickets/Tickets';
+import { Clients } from './pages/clients/Clients';
+import { Technicians } from './pages/technicians/Technicians';
+import { Printers } from './pages/printers/Printers';
+import { Dashboard } from './pages/dashboard/Dashboard';
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+
+        <Route path="/login" element={<Login />} />
+
+        <Route path="/app" element={<Layout />}>
+
+          <Route index element={<Dashboard />} />
+
+          <Route path="tickets" element={<Tickets />} />
+
+          <Route path="clientes" element={<Clients />} />
+
+          <Route path="tecnicos" element={<Technicians />} />
+
+          <Route path="ativos" element={<Printers />} />
+
+        </Route>
+
+        <Route path="*" element={<Navigate to="/app" replace />} />
+
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+export default App;
+</file>
+
+<file path="src/components/cards/ClientCard.module.css">
+.clientCard {
+    background: white;
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+    border: 1px solid rgba(0,0,0,0.04);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 220px;
+    position: relative;
+}
+
+.clientCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.06);
+    border-color: rgba(0,0,0,0.1);
+}
+
+.cardHeader {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.iconBox {
+    width: 48px;
+    height: 48px;
+    background: #f1f5f9;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #050810;
+}
+
+.cardInfo h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.docText {
+    margin: 4px 0 0 0;
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+.optionsBtn {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: transparent;
+    border: none;
+    color: #cbd5e1;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    transition: 0.2s;
+}
+
+.optionsBtn:hover {
+    background: #f1f5f9;
+    color: #050810;
+}
+
+.cardBody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.contactRow {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.cardFooter {
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    gap: 1rem;
+}
+
+.statBadge {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #475569;
+    background: #f8fafc;
+    padding: 4px 10px;
+    border-radius: 100px;
+}
+</file>
+
+<file path="src/components/cards/ClientCard.tsx">
+import { Building2, MoreVertical, MapPin, Phone, Printer, Ticket } from 'lucide-react';
+import styles from './ClientCard.module.css';
+import type ClientData from '../../types/client';
+
+interface ClientCardProps {
+  data: ClientData;
+}
+
+export function ClientCard({ data }: ClientCardProps) {
+  return (
+    <div className={styles.clientCard}>
+      <div className={styles.cardHeader}>
+        <div className={styles.iconBox}>
+          <Building2 size={24} />
+        </div>
+        <div className={styles.cardInfo}>
+          <h3>{data.nome}</h3>
+          <p className={styles.docText}>{data.documento}</p>
+        </div>
+        <button className={styles.optionsBtn}>
+          <MoreVertical size={18} />
+        </button>
+      </div>
+
+      <div className={styles.cardBody}>
+        <div className={styles.contactRow}>
+          <MapPin size={14} />
+          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '220px' }}>
+            {data.endereco}
+          </span>
+        </div>
+        <div className={styles.contactRow}>
+          <Phone size={14} /> {data.telefone}
+        </div>
+      </div>
+
+      <div className={styles.cardFooter}>
+        <div className={styles.statBadge}>
+          <Printer size={14} color="#64748b" />
+          {data.ativos} Ativos
+        </div>
+
+        <div
+          className={styles.statBadge}
+          style={data.ticketsAbertos > 0 ? { background: '#fee2e2', color: '#ef4444' } : {}}
+        >
+          <Ticket size={14} />
+          {data.ticketsAbertos} Chamados
+        </div>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/cards/PrinterCard.module.css">
+.card {
+    background: white;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Para o rodapé não vazar */
+    position: relative;
+    height: 240px;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 25px rgba(0,0,0,0.06);
+}
+
+/* Faixa de Status no Topo */
+.statusBar {
+    height: 6px;
+    width: 100%;
+    background: #e2e8f0;
+}
+.online { background: #22c55e; } /* Verde */
+.offline { background: #ef4444; } /* Vermelho */
+.warning { background: #f59e0b; } /* Laranja */
+
+.cardContent {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    gap: 1rem;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.modelName {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1.3;
+}
+
+.ipAddress {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    font-family: 'Courier New', Courier, monospace; /* Fonte técnica */
+    margin-top: 4px;
+}
+
+.iconWrapper {
+    width: 40px;
+    height: 40px;
+    background: #f8fafc;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #475569;
+}
+
+/* Área de Serial - Estilo "Etiqueta" */
+.serialBadge {
+    background: #f1f5f9;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    color: #475569;
+    font-family: 'Courier New', Courier, monospace;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+}
+
+/* Área de Métricas (Footer do Card) */
+.metricsFooter {
+    background: #f8fafc;
+    padding: 1rem 1.25rem;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.metricItem {
+    display: flex;
+    flex-direction: column;
+}
+
+.metricLabel {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #94a3b8;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.metricValue {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #0f172a;
+    font-variant-numeric: tabular-nums; /* Números alinhados */
+}
+
+/* Barrinha de Toner (Visual extra) */
+.tonerBar {
+    width: 60px;
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+.tonerLevel {
+    height: 100%;
+    background: var(--black-color);
+    border-radius: 10px;
+}
+</file>
+
+<file path="src/components/cards/PrinterCard.tsx">
+import { Printer, Wifi, WifiOff, AlertCircle, Hash, FileText } from 'lucide-react';
+import styles from './PrinterCard.module.css';
+import type PrinterData from '../../types/printer';
+
+interface PrinterCardProps {
+  data: PrinterData;
+}
+
+export function PrinterCard({ data }: PrinterCardProps) {
+  
+  const getStatusColor = () => {
+    switch(data.status) {
+        case 'online': return styles.online;
+        case 'offline': return styles.offline;
+        case 'warning': return styles.warning;
+    }
+  };
+
+  const getStatusIcon = () => {
+      if (data.status === 'online') return <Wifi size={16} color="#22c55e" />;
+      if (data.status === 'offline') return <WifiOff size={16} color="#ef4444" />;
+      return <AlertCircle size={16} color="#f59e0b" />;
+  };
+
+  return (
+    <div className={styles.card}>
+
+      <div className={`${styles.statusBar} ${getStatusColor()}`} />
+
+      <div className={styles.cardContent}>
+        <div className={styles.header}>
+            <div>
+                <h3 className={styles.modelName}>{data.modelo}</h3>
+            </div>
+            <div className={styles.iconWrapper}>
+                <Printer size={22} strokeWidth={1.5} />
+            </div>
+        </div>
+
+        <div className={styles.serialBadge}>
+            <Hash size={12} color="#94a3b8" />
+            {data.serial.toUpperCase()}
+        </div>
+
+        <div style={{display:'flex', alignItems:'center', gap: 6, fontSize: '0.8rem', color: '#64748b', marginTop: 'auto'}}>
+            {getStatusIcon()}
+            <span style={{textTransform: 'capitalize'}}>{data.status}</span>
+        </div>
+
+      </div>
+
+      <div className={styles.metricsFooter}>
+         <div className={styles.metricItem}>
+             <span className={styles.metricLabel}>Contador</span>
+             <div style={{display:'flex', alignItems:'center', gap: 6}}>
+                <FileText size={14} color="#64748b" />
+                <span className={styles.metricValue}>{data.contador.toLocaleString()}</span>
+             </div>
+         </div>
+      </div>
+
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/cards/TechnicianCard.module.css">
+.card {
+    background: white;
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+    border: 1px solid rgba(0,0,0,0.04);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Centralizado fica melhor para perfil */
+    text-align: center;
+    position: relative;
+    gap: 1rem;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.06);
+    border-color: rgba(0,0,0,0.1);
+}
+
+.optionsBtn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: transparent;
+    border: none;
+    color: #cbd5e1;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    transition: 0.2s;
+}
+
+.optionsBtn:hover {
+    background: #f1f5f9;
+    color: #050810;
+}
+
+/* Ícone de destaque (Avatar simbólico) */
+.iconBox {
+    width: 64px;
+    height: 64px;
+    background: #f1f5f9; /* Fundo cinza claro */
+    border-radius: 50%; /* Redondo */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #050810;
+    margin-top: 0.5rem;
+}
+
+.info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    width: 100%;
+}
+
+.name {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.email {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #94a3b8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Badge de Status */
+.statusBadge {
+    padding: 0.35rem 0.85rem;
+    border-radius: 100px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: auto; /* Empurra para baixo se o card crescer */
+}
+
+.status_ativo {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status_inativo {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+/* Bolinha colorida dentro do status */
+.statusDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: currentColor;
+}
+</file>
+
+<file path="src/components/cards/TechnicianCard.tsx">
+import { MoreVertical, UserCog } from 'lucide-react';
+import styles from './TechnicianCard.module.css';
+import type TechnicianData from '../../types/techinicians';
+
+interface TechnicianCardProps {
+  data: TechnicianData;
+}
+
+export function TechnicianCard({ data }: TechnicianCardProps) {
+  return (
+    <div className={styles.card}>
+      
+      <button className={styles.optionsBtn}>
+        <MoreVertical size={18} />
+      </button>
+
+      <div className={styles.iconBox}>
+        {/* Ícone diferente para técnicos (UserCog) */}
+        <UserCog size={32} strokeWidth={1.5} />
+      </div>
+
+      <div className={styles.info}>
+        <h3 className={styles.name}>{data.nome}</h3>
+        <p className={styles.email} title={data.email}>
+            {data.email}
+        </p>
+      </div>
+
+      <div className={`${styles.statusBadge} ${styles[`status_${data.status}`]}`}>
+        <div className={styles.statusDot} />
+        {data.status === 'ativo' ? 'Disponível' : 'Indisponível'}
+      </div>
+
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/cards/TicketCard.module.css">
+.ticketCard {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+    border: 1px solid rgba(0,0,0,0.04);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.ticketCard:hover {
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    transform: translateY(-2px) scale(1.005);
+}
+
+/* Classe auxiliar para quando estiver expandido */
+.expanded .expandedContent {
+    max-height: 500px;
+    opacity: 1;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.idBadge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #94a3b8;
+    margin-bottom: 0.5rem;
+}
+
+.cardTitle {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+}
+
+.clientInfo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+.statusTag {
+    padding: 0.4rem 0.8rem;
+    border-radius: 100px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status_aberto { background: #fee2e2; color: #ef4444; }
+.status_andamento { background: #fef3c7; color: #d97706; }
+.status_resolvido { background: #dcfce7; color: #16a34a; }
+
+.expandedContent {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: all 0.4s ease;
+    border-top: 1px solid #f1f5f9;
+    margin-top: 0;
+}
+
+.detailGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.detailLabel {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin-bottom: 0.25rem;
+    display: block;
+}
+
+.detailValue {
+    font-size: 0.95rem;
+    color: #334155;
+}
+</file>
+
+<file path="src/components/cards/TicketCard.tsx">
+import { ChevronDown, ChevronUp, Printer, Calendar, User } from 'lucide-react';
+import styles from './TicketCard.module.css';
+import type TicketData from '../../types/ticket';
+
+interface TicketCardProps {
+  data: TicketData;
+  isExpanded: boolean;
+  onToggle: () => void;
+}
+
+export function TicketCard({ data, isExpanded, onToggle }: TicketCardProps) {
+  return (
+    <div
+      className={`${styles.ticketCard} ${isExpanded ? styles.expanded : ''}`}
+      onClick={onToggle}
+    >
+      <div className={styles.cardHeader}>
+        <div>
+          <div className={styles.idBadge}>{data.id}</div>
+          <h3 className={styles.cardTitle}>{data.titulo}</h3>
+          <div className={styles.clientInfo}>
+            <User size={14} /> {data.cliente}
+            <span style={{ margin: '0 8px' }}>•</span>
+            <Printer size={14} /> {data.ativo}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'end', gap: 10 }}>
+          <span className={`${styles.statusTag} ${styles[`status_${data.status}`]}`}>
+            {data.status}
+          </span>
+          {isExpanded ? <ChevronUp size={18} color="#94a3b8" /> : <ChevronDown size={18} color="#94a3b8" />}
+        </div>
+      </div>
+
+      <div className={styles.expandedContent} onClick={e => e.stopPropagation()}>
+        <div className={styles.detailGrid}>
+          <div>
+            <span className={styles.detailLabel}>Descrição do Problema</span>
+            <p className={styles.detailValue} style={{ lineHeight: 1.6 }}>{data.descricao}</p>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div>
+              <span className={styles.detailLabel}>Data de Abertura</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.95rem' }}>
+                <Calendar size={16} color="#64748b" /> {data.data}
+              </div>
+            </div>
+            <div>
+              <span className={styles.detailLabel}>Técnico Responsável</span>
+              <div className={styles.detailValue}>{data.tecnico}</div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+          <button style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer' }}>Ver Histórico</button>
+          <button style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#050810', color: 'white', cursor: 'pointer' }}>Atender Chamado</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/modals/CreateTicketModal.module.css">
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal {
+    background: white;
+    width: 600px;
+    max-width: 90%;
+    border-radius: 20px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.closeBtn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #999;
+}
+
+.wizardBody {
+    padding: 0;
+    width: 100%;
+    min-height: 320px; 
+    display: flex;
+    flex-direction: column;
+}
+
+.stepContainer {
+    padding: 2rem;
+    width: 100%;
+    box-sizing: border-box;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.formGroup {
+    margin-bottom: 1.25rem;
+}
+
+.label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #444;
+}
+
+.input, .select, .textarea {
+    width: 100%;
+    padding: 0.875rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    background: #f8fafc;
+    transition: all 0.2s;
+    box-sizing: border-box;
+}
+
+.input:focus, .select:focus, .textarea:focus {
+    outline: none;
+    border-color: var(--black-color);
+    background: white;
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+}
+
+.textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.footer {
+    padding: 1.5rem;
+    background: #f9fafb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.btnSecondary {
+    padding: 0.75rem 1.5rem;
+    border: 1px solid #e2e8f0;
+    background: white;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: 0.2s;
+}
+
+.btnPrimary {
+    padding: 0.75rem 2rem;
+    background: var(--black-color);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btnPrimary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.stepIndicator {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    transition: 0.3s;
+}
+
+.dotActive {
+    background: var(--black-color);
+    transform: scale(1.2);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+</file>
+
+<file path="src/components/modals/CreateTicketModal.tsx">
+import { useState } from 'react';
+import { X, ArrowRight, CheckCircle, ArrowLeft } from 'lucide-react';
+import styles from './CreateTicketModal.module.css';
+
+interface CreateTicketModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export function CreateTicketModal({ isOpen, onClose }: CreateTicketModalProps) {
+  const [currentStep, setCurrentStep] = useState(0); // 0, 1, 2
+  
+  // State básico do formulário
+  const [formData, setFormData] = useState({
+    cliente: '',
+    ativo: '',
+    titulo: '',
+    descricao: '',
+    prioridade: 'baixa'
+  });
+
+  if (!isOpen) return null;
+
+  const handleNext = () => {
+    if (currentStep < 2) setCurrentStep(curr => curr + 1);
+  };
+
+  const handleBack = () => {
+    if (currentStep > 0) setCurrentStep(curr => curr - 1);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("Enviando ticket:", formData);
+    // Aqui chamaria a API
+    onClose();
+    setTimeout(() => setCurrentStep(0), 300); // Reseta depois de fechar
+  };
+
+  return (
+    <div className={styles.overlay}>
+      <div className={styles.modal}>
+        
+        {/* Header */}
+        <div className={styles.header}>
+          <h2 className={styles.title}>Novo Chamado</h2>
+          <button onClick={onClose} className={styles.closeBtn}>
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Corpo do Wizard com Renderização Condicional */}
+        <div className={styles.wizardBody}>
+            
+            {/* PASSO 0: Identificação */}
+            {currentStep === 0 && (
+              <div className={styles.stepContainer}>
+                <h3 style={{marginBottom: '1rem'}}>1. Quem é o cliente?</h3>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Cliente</label>
+                  <select 
+                    className={styles.select}
+                    value={formData.cliente}
+                    onChange={e => setFormData({...formData, cliente: e.target.value})}
+                    autoFocus // Foca automaticamente ao abrir
+                  >
+                    <option value="">Selecione um cliente...</option>
+                    <option value="acme">ACME Corp</option>
+                    <option value="globex">Globex Inc</option>
+                  </select>
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Ativo (Impressora)</label>
+                  <select 
+                    className={styles.select}
+                    value={formData.ativo}
+                    onChange={e => setFormData({...formData, ativo: e.target.value})}
+                  >
+                    <option value="">Selecione o equipamento...</option>
+                    <option value="hp1">HP LaserJet M1132 - RH</option>
+                    <option value="kyocera">Kyocera Ecosys - Financeiro</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* PASSO 1: Detalhes */}
+            {currentStep === 1 && (
+              <div className={styles.stepContainer}>
+                <h3 style={{marginBottom: '1rem'}}>2. Qual o problema?</h3>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Título do Problema</label>
+                  <input 
+                    type="text" 
+                    className={styles.input} 
+                    placeholder="Ex: Impressora manchando folha"
+                    value={formData.titulo}
+                    onChange={e => setFormData({...formData, titulo: e.target.value})}
+                    autoFocus
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Descrição Detalhada</label>
+                  <textarea 
+                    className={styles.textarea}
+                    placeholder="Descreva o que aconteceu..."
+                    value={formData.descricao}
+                    onChange={e => setFormData({...formData, descricao: e.target.value})}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* PASSO 2: Revisão */}
+            {currentStep === 2 && (
+              <div className={styles.stepContainer}>
+                <div style={{textAlign: 'center', padding: '1rem'}}>
+                   <div style={{
+                       width: 60, height: 60, background: '#dcfce7', color: '#166534', 
+                       borderRadius: '50%', display: 'flex', alignItems: 'center', 
+                       justifyContent: 'center', margin: '0 auto 1rem auto'
+                   }}>
+                      <CheckCircle size={32} />
+                   </div>
+                   <h3>Tudo pronto!</h3>
+                   <p style={{color: '#666', marginBottom: '2rem'}}>Revise os dados antes de abrir o chamado.</p>
+                   
+                   <div style={{background: '#f8fafc', padding: '1rem', borderRadius: 8, textAlign: 'left'}}>
+                      <p><strong>Cliente:</strong> {formData.cliente || '-'}</p>
+                      <p><strong>Ativo:</strong> {formData.ativo || '-'}</p>
+                      <p><strong>Problema:</strong> {formData.titulo || '-'}</p>
+                   </div>
+                </div>
+              </div>
+            )}
+
+        </div>
+
+        {/* Footer com Navegação */}
+        <div className={styles.footer}>
+          {/* Bolinhas indicadoras */}
+          <div className={styles.stepIndicator}>
+            {[0, 1, 2].map(step => (
+                <div key={step} className={`${styles.dot} ${currentStep === step ? styles.dotActive : ''}`} />
+            ))}
+          </div>
+
+          <div style={{display: 'flex', gap: '1rem'}}>
+             {currentStep > 0 && (
+                 <button onClick={handleBack} className={styles.btnSecondary}>
+                     <ArrowLeft size={16} style={{marginRight: 8, display:'inline'}} /> Voltar
+                 </button>
+             )}
+             
+             {currentStep < 2 ? (
+                 <button onClick={handleNext} className={styles.btnPrimary}>
+                     Próximo <ArrowRight size={18} />
+                 </button>
+             ) : (
+                 <button onClick={handleSubmit} className={styles.btnPrimary} style={{backgroundColor: '#16a34a'}}>
+                     Confirmar Abertura
+                 </button>
+             )}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/sidebar/Menus.module.css">
+/* Container do Menu Flutuante */
+.popover {
+  position: absolute;
+  top: 120%; /* Aparece acima do botão */
+  left: 50%;
+  transform: translateX(-50%); /* Centraliza em relação ao botão */
+  
+  width: 280px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  border: 1px solid #f1f5f9;
+  z-index: 50;
+  
+  /* Animação de entrada */
+  animation: slideUp 0.2s ease-out;
+  overflow: hidden;
+}
+
+/* Triângulo (setinha) apontando para baixo */
+.popover::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-bottom: 1px solid #f1f5f9;
+  border-right: 1px solid #f1f5f9;
+}
+
+/* Cabeçalho do Menu */
+.header {
+  padding: 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #1e293b;
+  background: #f8fafc;
+}
+
+/* Lista de Itens */
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: #475569;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+}
+
+.item:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.itemDanger {
+  color: #ef4444;
+}
+
+.itemDanger:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+/* Notificações Específicas */
+.notificationItem {
+  padding: 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.notificationItem:hover {
+  background: #f8fafc;
+}
+
+.notificationItem:last-child {
+  border-bottom: none;
+}
+
+.notifTitle {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #334155;
+  margin-bottom: 2px;
+}
+
+.notifTime {
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+</file>
+
+<file path="src/components/sidebar/SidebarMenus.tsx">
+import { LogOut } from 'lucide-react';
+import styles from './Menus.module.css';
+
+// --- MENU DE CONFIGURAÇÕES ---
+interface SettingsMenuProps {
+  onLogout: () => void;
+}
+
+export function SettingsMenu({ onLogout }: SettingsMenuProps) {
+  return (
+    <div className={styles.popover} style={{ width: 200 }}>
+      <div className={styles.list}>
+        <button className={`${styles.item} ${styles.itemDanger}`} onClick={onLogout}>
+          <LogOut size={16} />
+          Sair da Conta
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// --- MENU DE NOTIFICAÇÕES ---
+export function NotificationsMenu() {
+  // Mock de notificações
+  const notifications = [
+    { id: 1, title: 'Novo chamado de HP Laserjet', time: 'Há 5 min' },
+    { id: 2, title: 'Toner baixo em Recepção', time: 'Há 2 horas' },
+    { id: 3, title: 'Chamado #TK-9020 resolvido', time: 'Ontem' },
+  ];
+
+  return (
+    <div className={styles.popover}>
+      <div className={styles.header} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+        Notificações
+        <span style={{fontSize: '0.7rem', background: '#ef4444', color: 'white', padding: '2px 6px', borderRadius: 10}}>3</span>
+      </div>
+      <div style={{maxHeight: 300, overflowY: 'auto'}}>
+        {notifications.length === 0 ? (
+           <div style={{padding: '2rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem'}}>
+             Sem notificações novas
+           </div>
+        ) : (
+          notifications.map(notif => (
+            <div key={notif.id} className={styles.notificationItem}>
+               <div style={{display:'flex', gap: 8}}>
+                  <div style={{minWidth: 8, height: 8, borderRadius: '50%', background: '#3b82f6', marginTop: 4}} />
+                  <div>
+                    <div className={styles.notifTitle}>{notif.title}</div>
+                    <div className={styles.notifTime}>{notif.time}</div>
+                  </div>
+               </div>
+            </div>
+          ))
+        )}
+      </div>
+      <button className={styles.item} style={{justifyContent: 'center', borderTop: '1px solid #f1f5f9', borderRadius: '0 0 16px 16px', color: '#3b82f6', fontSize: '0.8rem'}}>
+        Marcar todas como lidas
+      </button>
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/ui/PageHeader.module.css">
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1em;
+    flex-shrink: 0;
+}
+
+.title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--black-color);
+    margin: 0;
+}
+
+.headerActions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+</file>
+
+<file path="src/components/ui/PageHeader.tsx">
+import { useSetAtom } from 'jotai';
+import { currentPageAtom } from '../../state/atoms';
+import { SearchInput } from './SearchInput';
+import { PrimaryButton } from './PrimaryButton';
+import styles from './PageHeader.module.css';
+import { useEffect } from 'react';
+
+interface PageHeaderProps {
+  title: string;
+  description: string;
+  actionIcon: React.ReactNode;
+  actionLabel: string;
+  onActionClick: () => void;
+  searchPlaceholder: string;
+  pageKey: string; // Ex: 'tickets' ou 'clients'
+}
+
+export function PageHeader({
+  title, description, actionIcon, actionLabel, 
+  onActionClick, searchPlaceholder, pageKey
+}: PageHeaderProps) {
+  
+  const setCurrentPage = useSetAtom(currentPageAtom);
+
+  useEffect(() => {
+    setCurrentPage(pageKey);
+  }, [pageKey, setCurrentPage]);
+
+  return (
+    <div className={styles.header}>
+      <div>
+        <h1 className={styles.title}>{title}</h1>
+        <p style={{color: '#64748b', fontSize: '0.9rem'}}>{description}</p>
+      </div>
+      
+      <div className={styles.headerActions}>
+        <SearchInput placeholder={searchPlaceholder} />
+        
+        <PrimaryButton icon={actionIcon} onClick={onActionClick}>
+          {actionLabel}
+        </PrimaryButton>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/ui/PrimaryButton.module.css">
+.primaryBtn {
+    background-color: var(--black-color);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 100px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: transform 0.2s;
+    flex-shrink: 0;
+}
+
+.primaryBtn:hover {
+    transform: scale(1.06);
+}
+</file>
+
+<file path="src/components/ui/PrimaryButton.tsx">
+import React from 'react';
+import styles from './PrimaryButton.module.css';
+
+interface PrimaryButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}
+
+export function PrimaryButton({ icon, children, ...rest }: PrimaryButtonProps) {
+  return (
+    <button className={styles.primaryBtn} {...rest}>
+      {icon}
+      {children}
+    </button>
+  );
+}
+</file>
+
+<file path="src/components/ui/SearchInput.module.css">
+.searchWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.searchIcon {
+    position: absolute;
+    left: 1rem;
+    color: #94a3b8;
+    pointer-events: none;
+}
+
+.searchInput {
+    padding: 0.75rem 1rem 0.75rem 2.8rem;
+    border-radius: 100px;
+    border: 1px solid #e2e8f0;
+    background-color: white;
+    font-family: inherit;
+    font-size: 0.9rem;
+    width: 300px;
+    transition: all 0.2s;
+    outline: none;
+}
+
+.searchInput:focus {
+    border-color: var(--black-color);
+    box-shadow: 0 0 0 3px rgba(0,0,0,0.05);
+}
+
+.searchInput::placeholder {
+    color: #cbd5e1;
+}
+</file>
+
+<file path="src/components/ui/SearchInput.tsx">
+import { Search } from 'lucide-react';
+import { useAtom } from 'jotai'; 
+import { searchTermAtom } from '../../state/atoms';
+import styles from './SearchInput.module.css';
+
+interface SearchInputProps {
+  placeholder?: string;
+}
+
+export function SearchInput({ placeholder = "Buscar..." }: SearchInputProps) {
+  const [searchTerm, setSearchTerm] = useAtom(searchTermAtom); 
+
+  return (
+    <div className={styles.searchWrapper}>
+      <Search className={styles.searchIcon} size={18} />
+      <input 
+        type="text" 
+        className={styles.searchInput} 
+        placeholder={placeholder}
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+      />
+    </div>
+  );
+}
+</file>
+
+<file path="src/global.css">
+:root {
+    --primary-color: #F3F5F7;
+    --white-color: #FFFFFF;
+    --black-color: #050810;
+    --font-main: "Poppins"
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--primary-color);
+    font-family: var(--font-main);
+}
+</file>
+
+<file path="src/hooks/useClickOutside.ts">
+import { useEffect, useRef } from 'react';
+
+export function useClickOutside<T extends HTMLElement>(handler: () => void) {
+  const ref = useRef<T>(null);
+
+  useEffect(() => {
+    const listener = (event: MouseEvent | TouchEvent) => {
+      // Se o clique foi dentro do elemento ref, não faz nada
+      if (!ref.current || ref.current.contains(event.target as Node)) {
+        return;
+      }
+      handler();
+    };
+
+    document.addEventListener('mousedown', listener);
+    document.addEventListener('touchstart', listener);
+
+    return () => {
+      document.removeEventListener('mousedown', listener);
+      document.removeEventListener('touchstart', listener);
+    };
+  }, [handler]);
+
+  return ref;
+}
+</file>
+
+<file path="src/layouts/Layout.module.css">
+.container {
+   display: flex;
+   height: 100vh;
+   box-sizing: border-box;
+   padding: 1em;
+   flex-direction: column;
+   overflow: hidden;
+}
+
+.sidebarArea {
+   flex-shrink: 0;
+   width: 100%;
+}
+
+.contentArea {
+   flex-grow: 1;
+   padding: 1rem;
+   height: 80%;
+}
+</file>
+
+<file path="src/layouts/Layout.tsx">
+import { Outlet } from 'react-router-dom';
+import { Sidebar } from './Sidebar';
+import styles from './Layout.module.css';
+
+export function Layout() {
+  return (
+    <div className={styles.container}>
+      <header className={styles.sidebarArea}>
+        <Sidebar />
+      </header>
+
+      <main className={styles.contentArea}>
+        <Outlet />
+      </main>
+    </div>
+  );
+}
+</file>
+
+<file path="src/layouts/Sidebar.module.css">
+.sidebar {
+    padding: 1em;
+    background-color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 12px;
+    max-width: 1500px;
+    margin: 0 auto;
+}
+
+.nav {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 20px 1rem;
+    border-radius: 100px;
+    text-decoration: none;
+    color: var(--black-color);
+    transition: all 0.2s ease;
+}
+
+.linkButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    border: none;
+    border-radius: 100px;
+    background-color: transparent;
+    color: var(--black-color);
+    transition: all 0.2s ease;
+}
+
+.linkButton:hover, .link:hover {
+    background: var(--black-color);
+    color: var(--white-color);
+    transform: scale(1.05);
+}
+
+.activeLink {
+    composes: link;
+    background: var(--black-color);
+    opacity: .5;
+    color: var(--white-color);
+}
+
+.navButtons {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+}
+
+.imgPerfil {
+    width: 52px;
+    height: 52px;
+    border-radius: 200px;
+}
+</file>
+
+<file path="src/layouts/Sidebar.tsx">
+import { useState } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { 
+  LayoutDashboard, Ticket, Settings, Users, 
+  Layers, BellRing, Wrench, Printer 
+} from 'lucide-react';
+import styles from './Sidebar.module.css';
+import { SettingsMenu, NotificationsMenu } from '../components/sidebar/SidebarMenus'; // Ajuste o import conforme sua pasta
+import { useClickOutside } from '../hooks/useClickOutside'; // Ajuste o import
+import { supabase } from '../lib/supabase'; // Para o logout
+
+export function Sidebar() {
+  const navigate = useNavigate();
+  
+  // Controle de qual menu está aberto ('notifications' | 'settings' | null)
+  const [activeMenu, setActiveMenu] = useState<'notifications' | 'settings' | null>(null);
+
+  // Refs para detectar clique fora e fechar
+  const navRef = useClickOutside<HTMLElement>(() => setActiveMenu(null));
+
+  const getLinkClass = ({ isActive }: { isActive: boolean }) =>
+    isActive ? styles.activeLink : styles.link;
+
+  const toggleMenu = (menu: 'notifications' | 'settings') => {
+    // Se clicar no mesmo que já está aberto, fecha. Senão, abre o novo.
+    setActiveMenu(current => current === menu ? null : menu);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/login');
+  };
+
+  return (
+    <aside className={styles.sidebar}>
+      <article>
+        <Layers size={40} />
+      </article>
+
+      <nav className={styles.nav}>
+        <NavLink to="/app" end className={getLinkClass}>
+          <LayoutDashboard size={20} />
+          Dashboard
+        </NavLink>
+        <NavLink to="/app/tickets" className={getLinkClass}>
+          <Ticket size={20} />
+          Tickets
+        </NavLink>
+        <NavLink to="/app/clientes" className={getLinkClass}>
+          <Users size={20} />
+          Clientes
+        </NavLink>
+        <NavLink to="/app/tecnicos" className={getLinkClass}>
+          <Wrench size={20} />
+          Técnicos
+        </NavLink>
+        <NavLink to="/app/ativos" className={getLinkClass}>
+          <Printer size={20} />
+          Impressoras
+        </NavLink>
+      </nav>
+
+      {/* Usamos a ref no container dos botões. 
+          Se clicar fora desse container, os menus fecham.
+      */}
+      <article className={styles.navButtons} ref={navRef}>
+        
+        {/* --- BOTÃO NOTIFICAÇÕES --- */}
+        <div style={{ position: 'relative' }}>
+          {activeMenu === 'notifications' && <NotificationsMenu />}
+          
+          <button 
+            className={`${styles.linkButton} ${activeMenu === 'notifications' ? styles.activeButton : ''}`}
+            onClick={() => toggleMenu('notifications')}
+          >
+            <BellRing size={20} />
+            {/* Bolinha vermelha se tiver notificação (opcional) */}
+            <span style={{position:'absolute', top: 8, right: 8, width:8, height:8, background:'#ef4444', borderRadius:'50%', border:'2px solid white'}}></span>
+          </button>
+        </div>
+
+        {/* --- BOTÃO SETTINGS --- */}
+        <div style={{ position: 'relative' }}>
+          {activeMenu === 'settings' && <SettingsMenu onLogout={handleLogout} />}
+          
+          <button 
+            className={`${styles.linkButton} ${activeMenu === 'settings' ? styles.activeButton : ''}`}
+            onClick={() => toggleMenu('settings')}
+          >
+            <Settings size={20} />
+          </button>
+        </div>
+
+        <NavLink to="">
+          <img className={styles.imgPerfil} src='https://avatars.githubusercontent.com/u/103720085?v=4' alt="Perfil" />
+        </NavLink>
+      </article>
+    </aside>
+  );
+}
+</file>
+
+<file path="src/lib/supabase.ts">
+import { createClient } from '@supabase/supabase-js';
+
+// Usamos import.meta.env no Vite para ler variáveis de ambiente
+const supabaseUrl = import.meta.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+export const supabase = createClient(supabaseUrl, supabaseKey);
+</file>
+
+<file path="src/main.tsx">
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import './global.css'
+import App from './App.tsx'
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>
+)
+</file>
+
+<file path="src/pages/auth/Login.tsx">
+export function Login() {
+    return (
+        <h1>ROTA DE LOGIN</h1>
+    )
+}
+</file>
+
+<file path="src/pages/clients/Clients.module.css">
+.wrapper {
+    width: 100%;
+    gap: 2em;
+    max-width: 1500px;
+    margin: 0 auto;
+    height: 100%; 
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; 
+}
+
+.gridContainer {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); 
+    gap: 1.5rem;
+    flex-grow: 1; 
+    overflow-y: auto; 
+    padding-bottom: 2rem;
+    padding-right: 0.5rem;
+}
+
+.gridContainer::-webkit-scrollbar {
+    scrollbar-width: none;
+}
+
+.gridContainer::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 20px;
+}
+
+.clientCard {
+    background: white;
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+    border: 1px solid rgba(0,0,0,0.04);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 220px; /* Altura fixa para uniformidade */
+    position: relative;
+}
+
+.clientCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.06);
+    border-color: rgba(0,0,0,0.1);
+}
+
+.cardHeader {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.iconBox {
+    width: 48px;
+    height: 48px;
+    background: #f1f5f9;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--black-color);
+}
+
+.cardInfo h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.docText {
+    margin: 4px 0 0 0;
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+.optionsBtn {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: transparent;
+    border: none;
+    color: #cbd5e1;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    transition: 0.2s;
+}
+
+.optionsBtn:hover {
+    background: #f1f5f9;
+    color: var(--black-color);
+}
+
+.cardBody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.contactRow {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.cardFooter {
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    gap: 1rem;
+}
+
+.statBadge {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #475569;
+    background: #f8fafc;
+    padding: 4px 10px;
+    border-radius: 100px;
+}
+</file>
+
+<file path="src/pages/clients/Clients.tsx">
+import {Plus} from 'lucide-react';
+import { useAtomValue } from 'jotai'; 
+import { searchTermAtom } from '../../state/atoms';
+import styles from './Clients.module.css';
+import { PageHeader } from '../../components/ui/PageHeader'; 
+import { ClientCard } from '../../components/cards/ClientCard';
+
+const MOCK_CLIENTES = [
+  // ... MOCK_CLIENTES continua o mesmo ...
+  {
+    id: '1',
+    nome: 'TechSolutions Ltda',
+    documento: '12.345.678/0001-90',
+    endereco: 'Av. Paulista, 1000 - SP',
+    telefone: '(11) 99999-8888',
+    ativos: 12,
+    ticketsAbertos: 3
+  },
+  {
+    id: '1111',
+    nome: 'TechSolutions Ltda',
+    documento: '12.345.678/0001-90',
+    endereco: 'Av. Paulista, 1000 - SP',
+    telefone: '(11) 99999-8888',
+    ativos: 12,
+    ticketsAbertos: 3
+  },
+  {
+    id: '331',
+    nome: 'TechSolutions Ltda',
+    documento: '12.345.678/0001-90',
+    endereco: 'Av. Paulista, 1000 - SP',
+    telefone: '(11) 99999-8888',
+    ativos: 12,
+    ticketsAbertos: 3
+  },
+  {
+    id: '21',
+    nome: 'TechSolutions Ltda',
+    documento: '12.345.678/0001-90',
+    endereco: 'Av. Paulista, 1000 - SP',
+    telefone: '(11) 99999-8888',
+    ativos: 12,
+    ticketsAbertos: 3
+  },
+  {
+    id: '121',
+    nome: 'TechSolutions Ltda',
+    documento: '12.345.678/0001-90',
+    endereco: 'Av. Paulista, 1000 - SP',
+    telefone: '(11) 99999-8888',
+    ativos: 12,
+    ticketsAbertos: 3
+  },
+  {
+    id: '111',
+    nome: 'TechSolutions Ltda',
+    documento: '12.345.678/0001-90',
+    endereco: 'Av. Paulista, 1000 - SP',
+    telefone: '(11) 99999-8888',
+    ativos: 12,
+    ticketsAbertos: 3
+  },
+  {
+    id: '13',
+    nome: 'TechSolutions Ltda',
+    documento: '12.345.678/0001-90',
+    endereco: 'Av. Paulista, 1000 - SP',
+    telefone: '(11) 99999-8888',
+    ativos: 12,
+    ticketsAbertos: 3
+  },
+  {
+    id: '12',
+    nome: 'TechSolutions Ltda',
+    documento: '12.345.678/0001-90',
+    endereco: 'Av. Paulista, 1000 - SP',
+    telefone: '(11) 99999-8888',
+    ativos: 12,
+    ticketsAbertos: 3
+  },
+  {
+    id: '11',
+    nome: 'TechSolutions Ltda',
+    documento: '12.345.678/0001-90',
+    endereco: 'Av. Paulista, 1000 - SP',
+    telefone: '(11) 99999-8888',
+    ativos: 12,
+    ticketsAbertos: 3
+  },
+  {
+    id: '2',
+    nome: 'Hospital Santa Clara',
+    documento: '98.765.432/0001-10',
+    endereco: 'Rua das Flores, 500 - RJ',
+    telefone: '(21) 3333-2222',
+    ativos: 45,
+    ticketsAbertos: 1
+  },
+  {
+    id: '3',
+    nome: 'Escola Futuro do Saber',
+    documento: '45.123.890/0001-55',
+    endereco: 'Alameda Santos, 40 - SP',
+    telefone: '(11) 3030-4040',
+    ativos: 5,
+    ticketsAbertos: 0
+  },
+  {
+    id: '4',
+    nome: 'Advocacia Mendes & Filhos',
+    documento: '11.222.333/0001-00',
+    endereco: 'Centro Civico, Sala 12 - PR',
+    telefone: '(41) 98888-7777',
+    ativos: 2,
+    ticketsAbertos: 0
+  },
+];
+
+export function Clients() {
+  const searchTerm = useAtomValue(searchTermAtom);
+
+  const filteredClients = MOCK_CLIENTES.filter(client => {
+    const searchLower = searchTerm.toLowerCase();
+    if (!searchLower) return true;
+    return (
+      client.nome.toLowerCase().includes(searchLower) ||
+      client.documento.includes(searchLower)
+    );
+  });
+
+  const handleNewClient = () => {
+    alert("Modal de Novo Cliente");
+  };
+
+  return (
+    <section className={styles.wrapper}>
+
+      <PageHeader
+        title="Meus Clientes"
+        description="Gerencie sua carteira de empresas"
+        actionIcon={<Plus size={20} />}
+        actionLabel="Novo Cliente"
+        onActionClick={handleNewClient}
+        searchPlaceholder="Buscar empresa ou CNPJ..."
+        pageKey="clients"
+      />
+
+      <div className={styles.gridContainer}>
+        {filteredClients.length === 0 && (
+          <div style={{ gridColumn: '1/-1', textAlign: 'center', color: '#94a3b8', marginTop: '2rem' }}>
+            Nenhum cliente encontrado para "{searchTerm}"
+          </div>
+        )}
+
+        {filteredClients.map(client => (
+          <ClientCard key={client.id} data={client} />
+        ))}
+      </div>
+    </section>
+  );
+}
+</file>
+
+<file path="src/pages/dashboard/Dashboard.module.css">
+.container {
+    width: 100%;
+    max-width: 1500px;
+    margin: 0 auto;
+    height: 100%;
+    overflow-y: auto;
+    padding-bottom: 2rem;
+    padding-right: 0.5rem;
+}
+
+.container::-webkit-scrollbar {
+    width: 6px;
+}
+.container::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 20px;
+}
+
+/* --- HEADER DE BOAS VINDAS --- */
+.header {
+    margin-bottom: 2rem;
+    padding-top: 1rem;
+}
+
+.welcomeText {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--black-color, #0f172a);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.subText {
+    color: #64748b;
+    margin-top: 0.25rem;
+    font-size: 0.95rem;
+}
+
+/* --- GRID DE KPIS (Cards do Topo) --- */
+.kpiGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.kpiCard {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 140px;
+}
+
+.kpiHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.kpiIcon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+
+.kpiValue {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1;
+}
+
+.kpiLabel {
+    font-size: 0.85rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.kpiTrend {
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: auto;
+}
+
+.trendPositive { color: #16a34a; }
+.trendNegative { color: #ef4444; }
+
+/* --- ÁREA DOS GRÁFICOS --- */
+.chartsGrid {
+    display: grid;
+    grid-template-columns: 2fr 1fr; /* O gráfico de linha ocupa 2/3 */
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+@media (max-width: 1024px) {
+    .chartsGrid { grid-template-columns: 1fr; }
+}
+
+.chartCard {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+    display: flex;
+    flex-direction: column;
+}
+
+.chartTitle {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0 1.5rem 0;
+    color: #1e293b;
+}
+
+/* --- ALERTA DE TONER (Lista Rápida) --- */
+.alertList {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.alertItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem;
+    background: #fff;
+    border: 1px solid #f1f5f9;
+    border-radius: 10px;
+}
+
+.alertInfo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.alertBarBg {
+    width: 80px;
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 10px;
+}
+
+.alertBarFill {
+    height: 100%;
+    background: #ef4444;
+    border-radius: 10px;
+}
+</file>
+
+<file path="src/pages/dashboard/Dashboard.tsx">
+import { 
+    Ticket, Printer, Users, TrendingUp, TrendingDown 
+} from 'lucide-react';
+import { 
+    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+    PieChart, Pie, Cell, Legend
+} from 'recharts';
+import styles from './Dashboard.module.css';
+
+// --- MOCK DATA ---
+const DATA_TICKETS = [
+  { name: 'Seg', tickets: 4 },
+  { name: 'Ter', tickets: 7 },
+  { name: 'Qua', tickets: 5 },
+  { name: 'Qui', tickets: 12 }, // Pico
+  { name: 'Sex', tickets: 9 },
+  { name: 'Sáb', tickets: 3 },
+  { name: 'Dom', tickets: 2 },
+];
+
+const DATA_STATUS = [
+  { name: 'Online', value: 45, color: '#22c55e' },
+  { name: 'Offline', value: 5, color: '#ef4444' },
+  { name: 'Alerta', value: 8, color: '#f59e0b' },
+];
+
+export function Dashboard() {
+  const userName = "Gabriel"; // Viria do Auth/Recoil
+  const today = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  return (
+    <div className={styles.container}>
+      
+      {/* Header Diferenciado */}
+      <header className={styles.header}>
+        <h1 className={styles.welcomeText}>
+           Olá, {userName} <span style={{fontSize: '1.5rem'}}>👋</span>
+        </h1>
+        <p className={styles.subText}>Aqui está o resumo do seu parque de impressão hoje, <span style={{textTransform: 'capitalize'}}>{today}</span>.</p>
+      </header>
+
+      {/* Grid de KPIs */}
+      <div className={styles.kpiGrid}>
+         {/* KPI 1: Tickets */}
+         <div className={styles.kpiCard}>
+            <div className={styles.kpiHeader}>
+                <div>
+                    <span className={styles.kpiLabel}>Novos Tickets</span>
+                    <div className={styles.kpiValue}>12</div>
+                </div>
+                <div className={styles.kpiIcon} style={{background: '#eff6ff', color: '#3b82f6'}}>
+                    <Ticket size={20} />
+                </div>
+            </div>
+            <div className={`${styles.kpiTrend} ${styles.trendPositive}`}>
+                <TrendingUp size={14} /> +15% essa semana
+            </div>
+         </div>
+
+         {/* KPI 2: Impressoras Ativas */}
+         <div className={styles.kpiCard}>
+            <div className={styles.kpiHeader}>
+                <div>
+                    <span className={styles.kpiLabel}>Impressoras Online</span>
+                    <div className={styles.kpiValue}>45<span style={{fontSize:'1rem', color:'#94a3b8'}}>/58</span></div>
+                </div>
+                <div className={styles.kpiIcon} style={{background: '#dcfce7', color: '#16a34a'}}>
+                    <Printer size={20} />
+                </div>
+            </div>
+            <div className={`${styles.kpiTrend} ${styles.trendNegative}`}>
+                <TrendingDown size={14} /> -2 conexões hoje
+            </div>
+         </div>
+
+         {/* KPI 3: Clientes */}
+         <div className={styles.kpiCard}>
+            <div className={styles.kpiHeader}>
+                <div>
+                    <span className={styles.kpiLabel}>Total Clientes</span>
+                    <div className={styles.kpiValue}>24</div>
+                </div>
+                <div className={styles.kpiIcon} style={{background: '#fef3c7', color: '#d97706'}}>
+                    <Users size={20} />
+                </div>
+            </div>
+            <div className={`${styles.kpiTrend} ${styles.trendPositive}`}>
+                <TrendingUp size={14} /> +2 novos esse mês
+            </div>
+         </div>
+      </div>
+
+      {/* Gráficos e Alertas */}
+      <div className={styles.chartsGrid}>
+          
+          {/* Gráfico Principal: Volume de Tickets */}
+          <div className={styles.chartCard}>
+             <h3 className={styles.chartTitle}>Volume de Chamados (7 Dias)</h3>
+             <div style={{ width: '100%', height: 300 }}>
+                <ResponsiveContainer>
+                    <AreaChart data={DATA_TICKETS}>
+                        <defs>
+                            <linearGradient id="colorTickets" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#8884d8" stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
+                            </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                        <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                        <Tooltip 
+                            contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}} 
+                        />
+                        <Area 
+                            type="monotone" 
+                            dataKey="tickets" 
+                            stroke="#8884d8" 
+                            strokeWidth={3}
+                            fillOpacity={1} 
+                            fill="url(#colorTickets)" 
+                        />
+                    </AreaChart>
+                </ResponsiveContainer>
+             </div>
+          </div>
+
+          {/* Coluna Direita: Status Pizza + Alertas de Toner */}
+          <div style={{display:'flex', flexDirection:'column', gap: '1.5rem'}}>
+             
+             {/* Gráfico Pizza */}
+             <div className={styles.chartCard} style={{height: '300px'}}>
+                 <h3 className={styles.chartTitle}>Status do Parque</h3>
+                 <div style={{ width: '100%', height: '100%' }}>
+                    <ResponsiveContainer>
+                        <PieChart>
+                            <Pie
+                                data={DATA_STATUS}
+                                innerRadius={60}
+                                outerRadius={80}
+                                paddingAngle={5}
+                                dataKey="value"
+                            >
+                                {DATA_STATUS.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                            </Pie>
+                            <Tooltip />
+                            <Legend wrapperStyle={{ paddingTop: '20px' }} verticalAlign="bottom" height={36}/>
+                        </PieChart>
+                    </ResponsiveContainer>
+                 </div>
+             </div>
+
+          </div>
+      </div>
+
+    </div>
+  );
+}
+</file>
+
+<file path="src/pages/printers/Printers.module.css">
+.wrapper {
+    width: 100%;
+    max-width: 1500px;
+    margin: 0 auto;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    gap: 2em;
+}
+
+.gridContainer {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    flex-grow: 1;
+    overflow-y: auto;
+    padding-bottom: 2rem;
+    padding-top: .4rem;
+    padding-right: 0.5rem;
+}
+
+.gridContainer::-webkit-scrollbar {
+    width: 6px;
+}
+
+.gridContainer::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 20px;
+}
+</file>
+
+<file path="src/pages/printers/Printers.tsx">
+import { Printer as PrinterIcon } from 'lucide-react';
+import { useAtomValue } from 'jotai';
+import { searchTermAtom } from '../../state/atoms';
+import styles from './Printers.module.css';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { PrinterCard } from '../../components/cards/PrinterCard';
+import type PrinterData from '../../types/printer';
+
+// Mock de dados
+const MOCK_PRINTERS: PrinterData[] = [
+  { id: '1', modelo: 'Kyocera Ecosys M2040', serial: 'VXC829921', contador: 14502, status: 'online' },
+  { id: '2', modelo: 'HP LaserJet Pro M428', serial: 'PHJ102399', contador: 5890, status: 'online' },
+  { id: '3', modelo: 'Brother DCP-L2540', serial: 'BR9928110', contador: 89000, status: 'offline'},
+  { id: '4', modelo: 'Ricoh MP 301', serial: 'RC301922', contador: 120, status: 'warning'},
+  { id: '5', modelo: 'Samsung Xpress M2020', serial: 'Z3D912K', contador: 1200, status: 'online'},
+  { id: '11', modelo: 'Kyocera Ecosys M2040', serial: 'VXC829921', contador: 14502, status: 'online' },
+  { id: '22', modelo: 'HP LaserJet Pro M428', serial: 'PHJ102399', contador: 5890, status: 'online' },
+  { id: '31', modelo: 'Brother DCP-L2540', serial: 'BR9928110', contador: 89000, status: 'offline'},
+  { id: '41', modelo: 'Ricoh MP 301', serial: 'RC301922', contador: 120, status: 'warning'},
+  { id: '51', modelo: 'Samsung Xpress M2020', serial: 'Z3D912K', contador: 1200, status: 'online'},
+];
+
+export function Printers() {
+  const searchTerm = useAtomValue(searchTermAtom);
+
+  const filteredPrinters = MOCK_PRINTERS.filter(printer => {
+    const searchLower = searchTerm.toLowerCase();
+    if (!searchLower) return true;
+    return (
+        printer.modelo.toLowerCase().includes(searchLower) ||
+        printer.serial.toLowerCase().includes(searchLower) 
+    );
+  });
+
+  const handleNewPrinter = () => {
+    alert("Modal de Nova Impressora");
+  };
+
+  return (
+    <section className={styles.wrapper}>
+      
+      <PageHeader
+        title="Impressoras"
+        description="Monitoramento de parque de impressão"
+        actionIcon={<PrinterIcon size={20} />}
+        actionLabel="Nova Impressora"
+        onActionClick={handleNewPrinter}
+        searchPlaceholder="Buscar modelo, serial ou IP..."
+        pageKey="printers"
+      />
+
+      <div className={styles.gridContainer}>
+        {filteredPrinters.length === 0 && (
+            <div style={{gridColumn: '1/-1', textAlign: 'center', color: '#94a3b8', marginTop: '2rem'}}>
+                Nenhuma impressora encontrada.
+            </div>
+        )}
+
+        {filteredPrinters.map(printer => (
+            <PrinterCard key={printer.id} data={printer} />
+        ))}
+      </div>
+
+    </section>
+  );
+}
+</file>
+
+<file path="src/pages/technicians/Technicians.module.css">
+.wrapper {
+    width: 100%;
+    max-width: 1500px;
+    margin: 0 auto;
+    height: 100%;
+    display: flex;
+    gap: 2em;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.gridContainer {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); 
+    gap: 1.5rem;
+    flex-grow: 1;
+    overflow-y: auto;
+    padding-bottom: 2rem;
+    padding-right: 0.5rem;
+    scrollbar-width: none;
+}
+
+.gridContainer::-webkit-scrollbar {
+    width: 6px;
+}
+.gridContainer::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 20px;
+}
+</file>
+
+<file path="src/pages/technicians/Technicians.tsx">
+import { UserPlus } from 'lucide-react';
+import { useAtomValue } from 'jotai';
+import { searchTermAtom } from '../../state/atoms';
+import styles from './Technicians.module.css';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { TechnicianCard } from '../../components/cards/TechnicianCard';
+import type TechnicianData from '../../types/techinicians';
+
+// Mock de dados
+const MOCK_TECNICOS: TechnicianData[] = [
+  { id: '12', nome: 'Carlos Souza', email: 'carlos.souza@nkw.com', status: 'ativo' },
+  { id: '22', nome: 'Ana Paula', email: 'ana.paula@nkw.com', status: 'ativo' },
+  { id: '32', nome: 'Roberto Alves', email: 'roberto.alves@nkw.com', status: 'inativo' },
+  { id: '42', nome: 'Fernanda Lima', email: 'fernanda.lima@nkw.com', status: 'ativo' },
+  { id: '52', nome: 'João Pedro', email: 'joao.pedro@nkw.com', status: 'ativo' },
+  { id: '1', nome: 'Carlos Souza', email: 'carlos.souza@nkw.com', status: 'ativo' },
+  { id: '2', nome: 'Ana Paula', email: 'ana.paula@nkw.com', status: 'ativo' },
+  { id: '3', nome: 'Roberto Alves', email: 'roberto.alves@nkw.com', status: 'inativo' },
+  { id: '4', nome: 'Fernanda Lima', email: 'fernanda.lima@nkw.com', status: 'ativo' },
+  { id: '5', nome: 'João Pedro', email: 'joao.pedro@nkw.com', status: 'ativo' },
+];
+
+export function Technicians() {
+  const searchTerm = useAtomValue(searchTermAtom);
+
+  const filteredTechnicians = MOCK_TECNICOS.filter(tech => {
+    const searchLower = searchTerm.toLowerCase();
+    if (!searchLower) return true;
+    return (
+        tech.nome.toLowerCase().includes(searchLower) ||
+        tech.email.toLowerCase().includes(searchLower)
+    );
+  });
+
+  const handleNewTechnician = () => {
+    alert("Modal de Cadastro de Técnico");
+  };
+
+  return (
+    <section className={styles.wrapper}>
+      
+      <PageHeader
+        title="Equipe Técnica"
+        description="Gerencie os técnicos e permissões"
+        actionIcon={<UserPlus size={20} />} // Ícone específico de add user
+        actionLabel="Novo Técnico"
+        onActionClick={handleNewTechnician}
+        searchPlaceholder="Buscar por nome ou email..."
+        pageKey="technicians"
+      />
+
+      <div className={styles.gridContainer}>
+        {filteredTechnicians.length === 0 && (
+            <div style={{gridColumn: '1/-1', textAlign: 'center', color: '#94a3b8', marginTop: '2rem'}}>
+                Nenhum técnico encontrado.
+            </div>
+        )}
+
+        {filteredTechnicians.map(tech => (
+            <TechnicianCard key={tech.id} data={tech} />
+        ))}
+      </div>
+
+    </section>
+  );
+}
+</file>
+
+<file path="src/pages/tickets/Tickets.module.css">
+.wrapper {
+    width: 100%;
+    gap: 2em;
+    max-width: 1500px;
+    margin: 0 auto;
+    height: 100%; 
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; 
+}
+
+.listContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    flex-grow: 1; 
+    overflow-x: visible;
+    scrollbar-width: none;
+    overflow-y: auto; 
+    padding-bottom: 2rem;
+    padding-right: 0.5rem;
+}
+
+.listContainer::-webkit-scrollbar {
+    width: 6px;
+}
+
+.listContainer::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.listContainer::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 20px;
+}
+
+.ticketCard {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+    border: 1px solid rgba(0,0,0,0.04);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.ticketCard:hover {
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    transform: translateY(-2px) scale(1.005);
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.idBadge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #94a3b8;
+    margin-bottom: 0.5rem;
+}
+
+.cardTitle {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+}
+
+.clientInfo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+.statusTag {
+    padding: 0.4rem 0.8rem;
+    border-radius: 100px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status_aberto { background: #fee2e2; color: #ef4444; }
+.status_andamento { background: #fef3c7; color: #d97706; }
+.status_resolvido { background: #dcfce7; color: #16a34a; }
+
+.expandedContent {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: all 0.4s ease;
+    border-top: 1px solid #f1f5f9;
+    margin-top: 0;
+}
+
+.ticketCard.expanded .expandedContent {
+    max-height: 500px;
+    opacity: 1;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+}
+
+.detailGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.detailLabel {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin-bottom: 0.25rem;
+    display: block;
+}
+
+.detailValue {
+    font-size: 0.95rem;
+    color: #334155;
+    text-wrap: balance;
+}
+</file>
+
+<file path="src/pages/tickets/Tickets.tsx">
+import { useState } from 'react';
+import { Plus } from 'lucide-react'; 
+import { useAtomValue, useSetAtom } from 'jotai';
+import { searchTermAtom, createTicketModalAtom } from '../../state/atoms';
+import styles from './Tickets.module.css';
+import { CreateTicketModal } from '../../components/modals/CreateTicketModal';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { TicketCard } from '../../components/cards/TicketCard';
+
+const MOCK_TICKETS = [
+  // ... MOCK_TICKETS continua o mesmo ...
+  { 
+    id: '#TK-9021', 
+    titulo: 'Impressora não puxa papel', 
+    cliente: 'Advocacia Silva', 
+    ativo: 'Kyocera Ecosys M2040', 
+    status: 'aberto', 
+    data: '12/12/2025',
+    descricao: 'A impressora faz barulho de engrenagem mas o papel não sobe. Aparentemente rolete gasto.',
+    tecnico: 'Pendente'
+  },
+  { 
+    id: '#TK-9020', 
+    titulo: 'Troca de Toner Ciano', 
+    cliente: 'Hospital Central', 
+    ativo: 'HP Laserjet Pro', 
+    status: 'resolvido', 
+    data: '10/12/2025',
+    descricao: 'Solicitação de troca de suprimento preventiva.',
+    tecnico: 'Carlos Souza'
+  },
+  { 
+    id: '#TK-9019', 
+    titulo: 'Erro de fusor 50.1', 
+    cliente: 'Supermercado Dia', 
+    ativo: 'Brother 8157', 
+    status: 'andamento', 
+    data: '09/12/2025',
+    descricao: 'Erro intermitente no painel. Reinicia e volta, mas trava depois de 10 paginas.',
+    tecnico: 'Ana Paula'
+  },
+  { 
+    id: '#TK-90191', 
+    titulo: 'Erro de fusor 50.1', 
+    cliente: 'Supermercado Dia', 
+    ativo: 'Brother 8157', 
+    status: 'andamento', 
+    data: '09/12/2025',
+    descricao: 'Erro intermitente no painel. Reinicia e volta, mas trava depois de 10 paginas.',
+    tecnico: 'Ana Paula'
+  },
+  { 
+    id: '#TK-90192', 
+    titulo: 'Erro de fusor 50.1', 
+    cliente: 'Supermercado Dia', 
+    ativo: 'Brother 8157', 
+    status: 'andamento', 
+    data: '09/12/2025',
+    descricao: 'Erro intermitente no painel. Reinicia e volta, mas trava depois de 10 paginas.',
+    tecnico: 'Ana Paula'
+  },
+];
+
+export function Tickets() {
+  const [expandedTicketId, setExpandedTicketId] = useState<string | null>(null);
+  const searchTerm = useAtomValue(searchTermAtom);
+  const setIsModalOpen = useSetAtom(createTicketModalAtom);
+
+  const toggleExpand = (id: string) => {
+    setExpandedTicketId(current => current === id ? null : id);
+  };
+
+  const filteredTickets = MOCK_TICKETS.filter(ticket => {
+    const searchLower = searchTerm.toLowerCase();
+    if (!searchLower) return true;
+    return (
+      ticket.id.toLowerCase().includes(searchLower) ||
+      ticket.cliente.toLowerCase().includes(searchLower) ||
+      ticket.ativo.toLowerCase().includes(searchLower)
+    );
+  });
+
+  return (
+    <section className={styles.wrapper}>
+      <PageHeader
+        title="Tickets de Serviço"
+        description="Gerencie os chamados técnicos"
+        actionIcon={<Plus size={20} />}
+        actionLabel="Novo Ticket"
+        onActionClick={() => setIsModalOpen(true)}
+        searchPlaceholder="Buscar por ID, Cliente ou Ativo..."
+        pageKey="tickets"
+      />
+
+      <div className={styles.listContainer}>
+        {filteredTickets.length === 0 && (
+          <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: '2rem' }}>
+            Nenhum ticket encontrado para "{searchTerm}"
+          </div>
+        )}
+
+        {filteredTickets.map(ticket => (
+          <TicketCard
+            key={ticket.id}
+            data={ticket}
+            isExpanded={expandedTicketId === ticket.id}
+            onToggle={() => toggleExpand(ticket.id)}
+          />
+        ))}
+      </div>
+
+      <CreateTicketModal
+        isOpen={useAtomValue(createTicketModalAtom)}
+        onClose={() => setIsModalOpen(false)}
+      />
+    </section>
+  );
+}
+</file>
+
+<file path="src/state/atoms.ts">
+import { atom } from 'jotai';
+
+// 1. Estado da Busca
+export const searchTermAtom = atom('');
+
+// 2. Estado do Modal
+export const createTicketModalAtom = atom(false);
+
+// 3. Estado da Página Atual
+export const currentPageAtom = atom('tickets');
+</file>
+
+<file path="src/types/client.ts">
+export default interface ClientData {
+  id: string;
+  nome: string;
+  documento: string;
+  endereco: string;
+  telefone: string;
+  ativos: number;
+  ticketsAbertos: number;
+}
+</file>
+
+<file path="src/types/printer.ts">
+export default interface PrinterData {
+  id: string;
+  modelo: string;
+  serial: string;
+  contador: number;
+  status: 'online' | 'offline' | 'warning';
+}
+</file>
+
+<file path="src/types/techinicians.ts">
+export default interface TechnicianData {
+  id: string;
+  nome: string;
+  email: string;
+  status: 'ativo' | 'inativo';
+}
+</file>
+
+<file path="src/types/ticket.ts">
+export default interface TicketData {
+  id: string;
+  titulo: string;
+  cliente: string;
+  ativo: string;
+  status: string;
+  data: string;
+  descricao: string;
+  tecnico: string;
+}
+</file>
+
+<file path="tsconfig.app.json">
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "types": ["vite/client"],
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
+  },
+  "include": ["src"]
+}
+</file>
+
+<file path="tsconfig.json">
+{
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
+}
+</file>
+
+<file path="tsconfig.node.json">
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "ESNext",
+    "types": ["node"],
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
+  },
+  "include": ["vite.config.ts"]
+}
+</file>
+
+<file path="vite.config.ts">
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    host: true, 
+    port: 5173,
+    watch: {
+      usePolling: true, 
+    },
+  },
+})
+</file>
+
+</files>

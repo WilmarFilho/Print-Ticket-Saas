@@ -18,6 +18,7 @@
     padding-bottom: 2rem;
     padding-top: .4rem;
     padding-right: 0.5rem;
+    scrollbar-width: none;
 }
 
 .gridContainer::-webkit-scrollbar {

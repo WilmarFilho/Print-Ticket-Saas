@@ -1,3 +1,36 @@
+/* Dashboard.module.css */
+
+.chartsGrid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+    align-items: stretch;
+    width: 100%; /* Garante largura total */
+}
+
+.chartCard {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    
+    /* CRÍTICO: Impede que o Recharts tente expandir o grid infinitamente */
+    min-width: 0; 
+    min-height: 400px; 
+}
+
+.chartWrapper {
+    width: 100%;
+    flex: 1;
+    min-height: 0; /* Permite que o flexbox controle o tamanho */
+    position: relative;
+}
+
+/* ===========================
+   CONTAINER PRINCIPAL
+   =========================== */
 .container {
     width: 100%;
     max-width: 1500px;
@@ -6,17 +39,21 @@
     overflow-y: auto;
     padding-bottom: 2rem;
     padding-right: 0.5rem;
+    scrollbar-width: none;
 }
 
 .container::-webkit-scrollbar {
     width: 6px;
 }
+
 .container::-webkit-scrollbar-thumb {
     background-color: #cbd5e1;
     border-radius: 20px;
 }
 
-/* --- HEADER DE BOAS VINDAS --- */
+/* ===========================
+   HEADER
+   =========================== */
 .header {
     margin-bottom: 2rem;
     padding-top: 1rem;
@@ -38,7 +75,9 @@
     font-size: 0.95rem;
 }
 
-/* --- GRID DE KPIS (Cards do Topo) --- */
+/* ===========================
+   GRID DE KPIs
+   =========================== */
 .kpiGrid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -95,29 +134,23 @@
     margin-top: auto;
 }
 
-.trendPositive { color: #16a34a; }
-.trendNegative { color: #ef4444; }
-
-/* --- ÁREA DOS GRÁFICOS --- */
-.chartsGrid {
-    display: grid;
-    grid-template-columns: 2fr 1fr; /* O gráfico de linha ocupa 2/3 */
-    gap: 1.5rem;
-    margin-bottom: 2rem;
+.trendPositive {
+    color: #16a34a;
 }
+
+.trendNegative {
+    color: #ef4444;
+}
+
+/* ===========================
+   ÁREA DOS GRÁFICOS
+   =========================== */
+
 
 @media (max-width: 1024px) {
-    .chartsGrid { grid-template-columns: 1fr; }
-}
-
-.chartCard {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 16px;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
-    display: flex;
-    flex-direction: column;
+    .chartsGrid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .chartTitle {
@@ -127,7 +160,9 @@
     color: #1e293b;
 }
 
-/* --- ALERTA DE TONER (Lista Rápida) --- */
+/* ===========================
+   ALERTAS
+   =========================== */
 .alertList {
     display: flex;
     flex-direction: column;
