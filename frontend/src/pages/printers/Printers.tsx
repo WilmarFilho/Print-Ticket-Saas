@@ -1,39 +1,26 @@
 import { Printer as PrinterIcon } from 'lucide-react';
 import { useAtomValue } from 'jotai';
-import { searchTermAtom } from '../../state/atoms';
+import { searchTermAtom, printersAtom } from '../../state/atoms'; // Importando atom real
 import styles from './Printers.module.css';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { PrinterCard } from '../../components/cards/PrinterCard';
-import type PrinterData from '../../types/printer';
-
-// Mock de dados
-const MOCK_PRINTERS: PrinterData[] = [
-  { id: '1', modelo: 'Kyocera Ecosys M2040', serial: 'VXC829921', contador: 14502, status: 'online' },
-  { id: '2', modelo: 'HP LaserJet Pro M428', serial: 'PHJ102399', contador: 5890, status: 'online' },
-  { id: '3', modelo: 'Brother DCP-L2540', serial: 'BR9928110', contador: 89000, status: 'offline'},
-  { id: '4', modelo: 'Ricoh MP 301', serial: 'RC301922', contador: 120, status: 'warning'},
-  { id: '5', modelo: 'Samsung Xpress M2020', serial: 'Z3D912K', contador: 1200, status: 'online'},
-  { id: '11', modelo: 'Kyocera Ecosys M2040', serial: 'VXC829921', contador: 14502, status: 'online' },
-  { id: '22', modelo: 'HP LaserJet Pro M428', serial: 'PHJ102399', contador: 5890, status: 'online' },
-  { id: '31', modelo: 'Brother DCP-L2540', serial: 'BR9928110', contador: 89000, status: 'offline'},
-  { id: '41', modelo: 'Ricoh MP 301', serial: 'RC301922', contador: 120, status: 'warning'},
-  { id: '51', modelo: 'Samsung Xpress M2020', serial: 'Z3D912K', contador: 1200, status: 'online'},
-];
 
 export function Printers() {
   const searchTerm = useAtomValue(searchTermAtom);
+  const rawPrinters = useAtomValue(printersAtom); // Dados vindos da API (via Layout)
 
-  const filteredPrinters = MOCK_PRINTERS.filter(printer => {
+  // Filtra usando os dados formatados
+  const filteredPrinters = rawPrinters.filter(printer => {
     const searchLower = searchTerm.toLowerCase();
     if (!searchLower) return true;
     return (
         printer.modelo.toLowerCase().includes(searchLower) ||
-        printer.serial.toLowerCase().includes(searchLower) 
+        printer.serial_number.toLowerCase().includes(searchLower) 
     );
   });
 
   const handleNewPrinter = () => {
-    alert("Modal de Nova Impressora");
+    alert("Em breve: Modal de Nova Impressora integrado ao Backend");
   };
 
   return (

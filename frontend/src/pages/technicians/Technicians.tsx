@@ -8,7 +8,6 @@ import { TechnicianCard } from '../../components/cards/TechnicianCard';
 export function Technicians() {
   const searchTerm = useAtomValue(searchTermAtom);
   const rawTechnicians = useAtomValue(techniciansAtom); 
-  console.log(rawTechnicians)
 
   const filteredTechnicians = rawTechnicians.filter(tech => {
     const searchLower = searchTerm.toLowerCase();

@@ -1,7 +1,15 @@
 export default interface PrinterData {
   id: string;
+  tenant_id: string;
+  cliente_id: string;
   modelo: string;
-  serial: string;
-  contador: number;
+  serial_number: string;
   status: 'online' | 'offline' | 'warning';
+  contador_atual: number;
+  created_at: string;
+  updated_at: string;
+  clientes: {
+    id: string;
+    razao_social: string;
+  }
 }

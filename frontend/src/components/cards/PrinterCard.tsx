@@ -39,7 +39,7 @@ export function PrinterCard({ data }: PrinterCardProps) {
 
         <div className={styles.serialBadge}>
             <Hash size={12} color="#94a3b8" />
-            {data.serial.toUpperCase()}
+            {data.serial_number.toUpperCase()}
         </div>
 
         <div style={{display:'flex', alignItems:'center', gap: 6, fontSize: '0.8rem', color: '#64748b', marginTop: 'auto'}}>
@@ -54,7 +54,7 @@ export function PrinterCard({ data }: PrinterCardProps) {
              <span className={styles.metricLabel}>Contador</span>
              <div style={{display:'flex', alignItems:'center', gap: 6}}>
                 <FileText size={14} color="#64748b" />
-                <span className={styles.metricValue}>{data.contador.toLocaleString()}</span>
+                <span className={styles.metricValue}>{data.contador_atual.toLocaleString()}</span>
              </div>
          </div>
       </div>
