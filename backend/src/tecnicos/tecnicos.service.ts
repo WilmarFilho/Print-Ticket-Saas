@@ -95,6 +95,7 @@ export class TecnicosService {
         `
           *,
           profiles (
+            id,
             nome,
             email,
             avatar_url
@@ -115,6 +116,7 @@ export class TecnicosService {
         `
         *,
         profiles (
+          id,
           nome,
           email,
           telefone

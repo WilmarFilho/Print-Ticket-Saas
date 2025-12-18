@@ -1,6 +1,10 @@
+import type ProfileData from "./profile";
+
 export default interface TechnicianData {
   id: string;
-  nome: string;
-  email: string;
+  tenant_id: string;
   status: 'ativo' | 'inativo';
+  created_at: string;
+  updated_at: string;
+  profiles: ProfileData[]
 }

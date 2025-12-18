@@ -6,7 +6,7 @@ export default interface ClientData {
   razao_social: string;
   documento: string;
   endereco: string;
-  profile: ProfileData;
+  profiles: ProfileData[];
   telefone: string;
   ativos: number;
   ticketsAbertos: number;

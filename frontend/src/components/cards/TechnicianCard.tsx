@@ -15,14 +15,13 @@ export function TechnicianCard({ data }: TechnicianCardProps) {
       </button>
 
       <div className={styles.iconBox}>
-        {/* Ícone diferente para técnicos (UserCog) */}
         <UserCog size={32} strokeWidth={1.5} />
       </div>
 
       <div className={styles.info}>
-        <h3 className={styles.name}>{data.nome}</h3>
-        <p className={styles.email} title={data.email}>
-            {data.email}
+        <h3 className={styles.name}>{data.profiles[0].nome}</h3>
+        <p className={styles.email} title={data.profiles[0].email}>
+            {data.profiles[0].email}
         </p>
       </div>
 
