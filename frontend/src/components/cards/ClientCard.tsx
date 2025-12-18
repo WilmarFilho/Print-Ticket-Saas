@@ -14,7 +14,7 @@ export function ClientCard({ data }: ClientCardProps) {
           <Building2 size={24} />
         </div>
         <div className={styles.cardInfo}>
-          <h3>{data.nome}</h3>
+          <h3>{data.razao_social}</h3>
           <p className={styles.docText}>{data.documento}</p>
         </div>
         <button className={styles.optionsBtn}>

@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateClienteDto } from './dto/create-cliente.dto';
 import { UpdateClienteDto } from './dto/update-cliente.dto';
 import { SupabaseService } from '../supabase/supabase.service';
@@ -10,7 +14,7 @@ export class ClientesService {
   async create(createClienteDto: CreateClienteDto) {
     const client = this.supabase.getClient();
 
-    // 1. Criar a Empresa (Cliente) na tabela 'clientes'
+    // 1. Criar a Empresa (Cliente)
     const { data: clienteData, error: clienteError } = await client
       .from('clientes')
       .insert({
@@ -30,13 +34,12 @@ export class ClientesService {
 
     // --- Início da criação do Usuário ---
     try {
-      // 2. Criar o Usuário no Supabase Auth
-      // Usamos admin.createUser para criar sem deslogar o admin atual e já confirmar o email
+      // 2. Criar Auth
       const { data: authData, error: authError } =
         await client.auth.admin.createUser({
           email: createClienteDto.email,
           password: createClienteDto.password,
-          email_confirm: true, // Já cria confirmado
+          email_confirm: true,
           user_metadata: {
             tenant_id: createClienteDto.tenant_id,
             tipo_usuario: 'cliente',
@@ -46,48 +49,59 @@ export class ClientesService {
       if (authError)
         throw new Error(`Erro ao criar login: ${authError.message}`);
 
-      // 3. Criar o Perfil na tabela 'profiles' vinculado ao Auth e ao Cliente
+      // 3. Criar Profile vinculado ao Cliente
       const { error: profileError } = await client.from('profiles').insert({
-        id: authData.user.id, // ID que veio do Auth
+        id: authData.user.id,
         tenant_id: createClienteDto.tenant_id,
-        cliente_id: clienteData.id, // ID da empresa criada no passo 1
+        cliente_id: clienteData.id, // VÍNCULO IMPORTANTE
         nome: createClienteDto.nome_responsavel,
         email: createClienteDto.email,
         tipo_usuario: 'cliente',
       });
 
       if (profileError) {
-        // Se falhar no profile, precisamos apagar o usuário do Auth para não ficar órfão
         await client.auth.admin.deleteUser(authData.user.id);
         throw new Error(`Erro ao criar perfil: ${profileError.message}`);
       }
 
-      // Sucesso total: Retorna os dados combinados
       return {
         ...clienteData,
         usuario_criado: {
           id: authData.user.id,
-          email: authData.user.email,
           nome: createClienteDto.nome_responsavel,
+          email: createClienteDto.email,
         },
       };
     } catch (error) {
-      // ROLLBACK: Se deu erro na etapa de usuário ou perfil, apagamos a empresa criada no passo 1
       await client.from('clientes').delete().eq('id', clienteData.id);
-      throw new BadRequestException(error.message);
+      throw new BadRequestException(
+        error instanceof Error ? error.message : 'Erro desconhecido',
+      );
     }
   }
 
-  // ... (Manter findAll, findOne, update, remove iguais ou ajustar conforme necessidade)
-
   async findAll() {
+    // JOIN: Trazemos todos os campos de clientes (*) e campos específicos de profiles
     const { data, error } = await this.supabase
       .getClient()
       .from('clientes')
-      .select('*')
+      .select(
+        `
+        *,
+        profiles (
+          id,
+          nome,
+          email,
+          avatar_url
+        )
+      `,
+      )
       .order('razao_social', { ascending: true });
 
     if (error) throw new BadRequestException(error.message);
+
+    // DICA: O Supabase retorna 'profiles' como um ARRAY [].
+    // Se você quiser facilitar pro frontend, pode mapear aqui, mas geralmente tratamos no front.
     return data;
   }
 
@@ -95,24 +109,45 @@ export class ClientesService {
     const { data, error } = await this.supabase
       .getClient()
       .from('clientes')
-      .select('*')
+      .select(
+        `
+        *,
+        profiles (
+          id,
+          nome,
+          email,
+          telefone
+        )
+      `,
+      )
       .eq('id', id)
+      .single();
+
+    if (error) throw new NotFoundException('Cliente não encontrado');
+    return data;
+  }
+
+  // ... (manter update e remove)
+  async update(id: string, updateClienteDto: UpdateClienteDto) {
+    const { data, error } = await this.supabase
+      .getClient()
+      .from('clientes')
+      .update(updateClienteDto) // Cuidado: updateClienteDto não deve ter email/senha
+      .eq('id', id)
+      .select()
       .single();
 
     if (error) throw new BadRequestException(error.message);
     return data;
   }
 
-  // Update e Remove continuam focados apenas na tabela Clientes por enquanto
-  // (Pode expandir depois se quiser alterar email/senha por aqui)
-
-  async update(id: string, updateClienteDto: UpdateClienteDto) {
-    // Implementação padrão...
-    return { message: 'Update simplificado por enquanto' };
-  }
-
   async remove(id: string) {
-    // Implementação padrão...
-    return { message: 'Remove simplificado por enquanto' };
+    const { error } = await this.supabase
+      .getClient()
+      .from('clientes')
+      .delete()
+      .eq('id', id);
+    if (error) throw new BadRequestException(error.message);
+    return { message: 'Cliente removido' };
   }
 }
