@@ -32,7 +32,7 @@ The content is organized as follows:
 <notes>
 - Some files may have been excluded based on .gitignore rules and Repomix's configuration
 - Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
-- Files matching these patterns are excluded: **/*.lock, **/*.svg, **/*.png, **/public/**, **/.next/**, **/dist/**, **/node_modules/**
+- Files matching these patterns are excluded: **/*.lock, **/*.svg, **/*.png, **/public/**, **/.next/**, **/dist/**, **/node_modules/**, **/.git/**
 - Files matching patterns in .gitignore are excluded
 - Files matching default ignore patterns are excluded
 - Files are sorted by Git change count (files with more changes are at the bottom)
@@ -48,6 +48,7 @@ index.html
 nginx.conf
 package.json
 src/App.tsx
+src/components/auth/ProtectedRoute.tsx
 src/components/cards/ClientCard.module.css
 src/components/cards/ClientCard.tsx
 src/components/cards/PrinterCard.module.css
@@ -85,9 +86,11 @@ src/pages/technicians/Technicians.module.css
 src/pages/technicians/Technicians.tsx
 src/pages/tickets/Tickets.module.css
 src/pages/tickets/Tickets.tsx
+src/services/api.ts
 src/state/atoms.ts
 src/types/client.ts
 src/types/printer.ts
+src/types/profile.ts
 src/types/techinicians.ts
 src/types/ticket.ts
 tsconfig.app.json
@@ -255,41 +258,89 @@ server {
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Login } from './pages/auth/Login';
 import { Layout } from './layouts/Layout';
-import { Tickets } from './pages/tickets/Tickets';
+import { Dashboard } from './pages/dashboard/Dashboard';
 import { Clients } from './pages/clients/Clients';
+import { ProtectedRoute } from './components/auth/ProtectedRoute';
+import { Tickets } from './pages/tickets/Tickets';
 import { Technicians } from './pages/technicians/Technicians';
 import { Printers } from './pages/printers/Printers';
-import { Dashboard } from './pages/dashboard/Dashboard';
+// ... outros imports
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-
         <Route path="/login" element={<Login />} />
 
-        <Route path="/app" element={<Layout />}>
-
-          <Route index element={<Dashboard />} />
-
-          <Route path="tickets" element={<Tickets />} />
-
-          <Route path="clientes" element={<Clients />} />
-
-          <Route path="tecnicos" element={<Technicians />} />
-
-          <Route path="ativos" element={<Printers />} />
+        {/* Rotas Protegidas */}
+        <Route element={<ProtectedRoute />}>
+          
+          <Route path="/app" element={<Layout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="clientes" element={<Clients />} />
+            <Route path="tickets" element={<Tickets />} />
+            <Route path="tecnicos" element={<Technicians />} />
+            <Route path="ativos" element={<Printers />} />
+          </Route>
 
         </Route>
 
+        {/* Redirecionar raiz para /app (o ProtectedRoute vai jogar pro Login se precisar) */}
         <Route path="*" element={<Navigate to="/app" replace />} />
-
       </Routes>
     </BrowserRouter>
   );
 }
-
 export default App;
+</file>
+
+<file path="src/components/auth/ProtectedRoute.tsx">
+import { useEffect, useState } from 'react';
+import { Navigate, Outlet } from 'react-router-dom';
+import { useSetAtom } from 'jotai';
+import { sessionAtom } from '../../state/atoms';
+import { supabase } from '../../lib/supabase';
+import { Loader2 } from 'lucide-react';
+
+export function ProtectedRoute() {
+  const setSession = useSetAtom(sessionAtom);
+  const [loading, setLoading] = useState(true);
+  const [authenticated, setAuthenticated] = useState(false);
+
+  useEffect(() => {
+    // Verifica a sessão atual ao carregar a página (ex: F5)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setAuthenticated(!!session);
+      setLoading(false);
+    });
+
+    // Escuta mudanças (ex: logout em outra aba)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setAuthenticated(!!session);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [setSession]);
+
+  if (loading) {
+    return (
+      <div style={{height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+        <Loader2 className="animate-spin" size={40} />
+      </div>
+    );
+  }
+
+  // Se não estiver autenticado, manda pro Login
+  if (!authenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Se estiver OK, renderiza as rotas filhas (Layout)
+  return <Outlet />;
+}
 </file>
 
 <file path="src/components/cards/ClientCard.module.css">
@@ -415,7 +466,7 @@ export function ClientCard({ data }: ClientCardProps) {
           <Building2 size={24} />
         </div>
         <div className={styles.cardInfo}>
-          <h3>{data.nome}</h3>
+          <h3>{data.razao_social}</h3>
           <p className={styles.docText}>{data.documento}</p>
         </div>
         <button className={styles.optionsBtn}>
@@ -628,7 +679,7 @@ export function PrinterCard({ data }: PrinterCardProps) {
 
         <div className={styles.serialBadge}>
             <Hash size={12} color="#94a3b8" />
-            {data.serial.toUpperCase()}
+            {data.serial_number.toUpperCase()}
         </div>
 
         <div style={{display:'flex', alignItems:'center', gap: 6, fontSize: '0.8rem', color: '#64748b', marginTop: 'auto'}}>
@@ -643,7 +694,7 @@ export function PrinterCard({ data }: PrinterCardProps) {
              <span className={styles.metricLabel}>Contador</span>
              <div style={{display:'flex', alignItems:'center', gap: 6}}>
                 <FileText size={14} color="#64748b" />
-                <span className={styles.metricValue}>{data.contador.toLocaleString()}</span>
+                <span className={styles.metricValue}>{data.contador_atual.toLocaleString()}</span>
              </div>
          </div>
       </div>
@@ -779,14 +830,13 @@ export function TechnicianCard({ data }: TechnicianCardProps) {
       </button>
 
       <div className={styles.iconBox}>
-        {/* Ícone diferente para técnicos (UserCog) */}
         <UserCog size={32} strokeWidth={1.5} />
       </div>
 
       <div className={styles.info}>
-        <h3 className={styles.name}>{data.nome}</h3>
-        <p className={styles.email} title={data.email}>
-            {data.email}
+        <h3 className={styles.name}>{data.profiles[0].nome}</h3>
+        <p className={styles.email} title={data.profiles[0].email}>
+            {data.profiles[0].email}
         </p>
       </div>
 
@@ -896,7 +946,7 @@ export function TechnicianCard({ data }: TechnicianCardProps) {
 <file path="src/components/cards/TicketCard.tsx">
 import { ChevronDown, ChevronUp, Printer, Calendar, User } from 'lucide-react';
 import styles from './TicketCard.module.css';
-import type TicketData from '../../types/ticket';
+import type TicketData from '../../types/ticket'; // Importando a interface raw do banco
 
 interface TicketCardProps {
   data: TicketData;
@@ -905,6 +955,15 @@ interface TicketCardProps {
 }
 
 export function TicketCard({ data, isExpanded, onToggle }: TicketCardProps) {
+  // Helpers para formatação segura
+  const formattedDate = new Date(data.created_at).toLocaleDateString('pt-BR');
+  const shortId = `#TK-${data.id.slice(0, 6).toUpperCase()}`; // Ex: #TK-A1B2C3
+  
+  // Tratamento de nulos (caso o backend não retorne o join corretamente)
+  const clientName = data.clientes?.razao_social || 'Cliente N/A';
+  const assetModel = data.ativos?.modelo || 'Ativo N/A';
+  const techName = data.tecnicos?.profiles?.nome || 'Pendente';
+
   return (
     <div
       className={`${styles.ticketCard} ${isExpanded ? styles.expanded : ''}`}
@@ -912,12 +971,12 @@ export function TicketCard({ data, isExpanded, onToggle }: TicketCardProps) {
     >
       <div className={styles.cardHeader}>
         <div>
-          <div className={styles.idBadge}>{data.id}</div>
+          <div className={styles.idBadge}>{shortId}</div>
           <h3 className={styles.cardTitle}>{data.titulo}</h3>
           <div className={styles.clientInfo}>
-            <User size={14} /> {data.cliente}
+            <User size={14} /> {clientName}
             <span style={{ margin: '0 8px' }}>•</span>
-            <Printer size={14} /> {data.ativo}
+            <Printer size={14} /> {assetModel}
           </div>
         </div>
 
@@ -933,25 +992,31 @@ export function TicketCard({ data, isExpanded, onToggle }: TicketCardProps) {
         <div className={styles.detailGrid}>
           <div>
             <span className={styles.detailLabel}>Descrição do Problema</span>
-            <p className={styles.detailValue} style={{ lineHeight: 1.6 }}>{data.descricao}</p>
+            <p className={styles.detailValue} style={{ lineHeight: 1.6 }}>
+              {data.descricao || 'Sem descrição.'}
+            </p>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div>
               <span className={styles.detailLabel}>Data de Abertura</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.95rem' }}>
-                <Calendar size={16} color="#64748b" /> {data.data}
+                <Calendar size={16} color="#64748b" /> {formattedDate}
               </div>
             </div>
             <div>
               <span className={styles.detailLabel}>Técnico Responsável</span>
-              <div className={styles.detailValue}>{data.tecnico}</div>
+              <div className={styles.detailValue}>{techName}</div>
             </div>
           </div>
         </div>
 
         <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-          <button style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer' }}>Ver Histórico</button>
-          <button style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#050810', color: 'white', cursor: 'pointer' }}>Atender Chamado</button>
+          <button style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer' }}>
+            Ver Histórico
+          </button>
+          <button style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#050810', color: 'white', cursor: 'pointer' }}>
+            Atender Chamado
+          </button>
         </div>
       </div>
     </div>
@@ -1672,6 +1737,7 @@ export function SearchInput({ placeholder = "Buscar..." }: SearchInputProps) {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -1731,11 +1797,66 @@ export function useClickOutside<T extends HTMLElement>(handler: () => void) {
 </file>
 
 <file path="src/layouts/Layout.tsx">
+import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
+import { useAtom, useSetAtom } from 'jotai';
 import { Sidebar } from './Sidebar';
 import styles from './Layout.module.css';
+import api from '../services/api';
+import { 
+  clientsAtom, printersAtom, techniciansAtom, ticketsAtom, 
+  isLoadingDataAtom 
+} from '../state/atoms';
+import { Loader2 } from 'lucide-react';
 
 export function Layout() {
+  // Atoms para setar os dados globais
+  const setClients = useSetAtom(clientsAtom);
+  const setPrinters = useSetAtom(printersAtom);
+  const setTechnicians = useSetAtom(techniciansAtom);
+  const setTickets = useSetAtom(ticketsAtom);
+  
+  const [isLoading, setIsLoading] = useAtom(isLoadingDataAtom);
+
+  useEffect(() => {
+    async function fetchAllData() {
+      setIsLoading(true);
+      try {
+        // Promise.all para carregar tudo em paralelo (muito mais rápido)
+        const [clientsRes, printersRes, techsRes, ticketsRes] = await Promise.all([
+          api.get('/clientes'),
+          api.get('/ativos'),   // Assumindo que você criou esse endpoint
+          api.get('/tecnicos'), // Assumindo que você criou esse endpoint
+          api.get('/tickets')   // Assumindo que você criou esse endpoint
+        ]);
+
+        setClients(clientsRes.data);
+        setPrinters(printersRes.data);
+        setTechnicians(techsRes.data);
+        setTickets(ticketsRes.data);
+
+        
+        
+      } catch (error) {
+        console.error("Erro ao carregar dados iniciais:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchAllData();
+  }, []);
+
+  // Enquanto carrega os dados iniciais, mostra um loading bonito cobrindo a tela
+  if (isLoading) {
+    return (
+      <div style={{height: '100vh', display: 'flex', flexDirection:'column', alignItems: 'center', justifyContent: 'center', gap: '1rem'}}>
+        <Loader2 className="animate-spin" size={48} />
+        <p style={{color: '#64748b'}}>Sincronizando sistema...</p>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.container}>
       <header className={styles.sidebarArea}>
@@ -1819,18 +1940,20 @@ export function Layout() {
 <file path="src/layouts/Sidebar.tsx">
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { 
-  LayoutDashboard, Ticket, Settings, Users, 
-  Layers, BellRing, Wrench, Printer 
+import {
+  LayoutDashboard, Ticket, Settings, Users,
+  Layers, BellRing, Wrench, Printer
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
 import { SettingsMenu, NotificationsMenu } from '../components/sidebar/SidebarMenus'; // Ajuste o import conforme sua pasta
 import { useClickOutside } from '../hooks/useClickOutside'; // Ajuste o import
 import { supabase } from '../lib/supabase'; // Para o logout
+import { useSetAtom } from 'jotai';
+import { sessionAtom } from '../state/atoms';
 
 export function Sidebar() {
   const navigate = useNavigate();
-  
+
   // Controle de qual menu está aberto ('notifications' | 'settings' | null)
   const [activeMenu, setActiveMenu] = useState<'notifications' | 'settings' | null>(null);
 
@@ -1845,8 +1968,12 @@ export function Sidebar() {
     setActiveMenu(current => current === menu ? null : menu);
   };
 
+  // Hooks para limpar estado visualmente se quiser (opcional, o reload faz isso)
+  const setSession = useSetAtom(sessionAtom);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    setSession(null); // Limpa atom de sessão
     navigate('/login');
   };
 
@@ -1883,26 +2010,26 @@ export function Sidebar() {
           Se clicar fora desse container, os menus fecham.
       */}
       <article className={styles.navButtons} ref={navRef}>
-        
+
         {/* --- BOTÃO NOTIFICAÇÕES --- */}
         <div style={{ position: 'relative' }}>
           {activeMenu === 'notifications' && <NotificationsMenu />}
-          
-          <button 
+
+          <button
             className={`${styles.linkButton} ${activeMenu === 'notifications' ? styles.activeButton : ''}`}
             onClick={() => toggleMenu('notifications')}
           >
             <BellRing size={20} />
             {/* Bolinha vermelha se tiver notificação (opcional) */}
-            <span style={{position:'absolute', top: 8, right: 8, width:8, height:8, background:'#ef4444', borderRadius:'50%', border:'2px solid white'}}></span>
+            <span style={{ position: 'absolute', top: 8, right: 8, width: 8, height: 8, background: '#ef4444', borderRadius: '50%', border: '2px solid white' }}></span>
           </button>
         </div>
 
         {/* --- BOTÃO SETTINGS --- */}
         <div style={{ position: 'relative' }}>
           {activeMenu === 'settings' && <SettingsMenu onLogout={handleLogout} />}
-          
-          <button 
+
+          <button
             className={`${styles.linkButton} ${activeMenu === 'settings' ? styles.activeButton : ''}`}
             onClick={() => toggleMenu('settings')}
           >
@@ -1920,33 +2047,137 @@ export function Sidebar() {
 </file>
 
 <file path="src/lib/supabase.ts">
+// src/lib/supabase.ts
 import { createClient } from '@supabase/supabase-js';
 
-// Usamos import.meta.env no Vite para ler variáveis de ambiente
-const supabaseUrl = import.meta.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 </file>
 
 <file path="src/main.tsx">
-import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './global.css'
 import App from './App.tsx'
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>
     <App />
-  </StrictMode>
 )
 </file>
 
 <file path="src/pages/auth/Login.tsx">
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../../lib/supabase';
+import { Loader2 } from 'lucide-react'; // Ícone de loading
+
 export function Login() {
-    return (
-        <h1>ROTA DE LOGIN</h1>
-    )
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      // Se der certo, vai para o dashboard
+      navigate('/app');
+    } catch {
+      setError('Erro ao entrar. Verifique suas credenciais.');
+      console.error('ERROR');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{
+      height: '100vh', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center',
+      background: '#f1f5f9'
+    }}>
+      <div style={{
+        background: 'white', 
+        padding: '2rem', 
+        borderRadius: '16px', 
+        width: '100%', 
+        maxWidth: '400px',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
+      }}>
+        <h1 style={{fontSize: '1.5rem', fontWeight: 600, marginBottom: '1.5rem', textAlign: 'center'}}>
+          Acessar Sistema
+        </h1>
+
+        {error && (
+          <div style={{
+            background: '#fee2e2', color: '#ef4444', 
+            padding: '0.75rem', borderRadius: '8px', 
+            fontSize: '0.9rem', marginBottom: '1rem'
+          }}>
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleLogin} style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
+          <div>
+            <label style={{display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#475569'}}>Email</label>
+            <input 
+              type="email" 
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+              style={{
+                width: '100%', padding: '0.75rem', borderRadius: '8px', 
+                border: '1px solid #e2e8f0', outline: 'none'
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#475569'}}>Senha</label>
+            <input 
+              type="password" 
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+              style={{
+                width: '100%', padding: '0.75rem', borderRadius: '8px', 
+                border: '1px solid #e2e8f0', outline: 'none'
+              }}
+            />
+          </div>
+
+          <button 
+            type="submit" 
+            disabled={loading}
+            style={{
+              marginTop: '1rem',
+              background: '#050810', color: 'white',
+              padding: '0.75rem', borderRadius: '100px',
+              border: 'none', cursor: 'pointer', fontWeight: 500,
+              display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem'
+            }}
+          >
+            {loading ? <Loader2 className="animate-spin" size={20} /> : 'Entrar'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
 }
 </file>
 
@@ -2087,133 +2318,22 @@ export function Login() {
 </file>
 
 <file path="src/pages/clients/Clients.tsx">
-import {Plus} from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useAtomValue } from 'jotai'; 
-import { searchTermAtom } from '../../state/atoms';
+import { searchTermAtom, clientsAtom } from '../../state/atoms'; // Importe o atom
 import styles from './Clients.module.css';
 import { PageHeader } from '../../components/ui/PageHeader'; 
 import { ClientCard } from '../../components/cards/ClientCard';
 
-const MOCK_CLIENTES = [
-  // ... MOCK_CLIENTES continua o mesmo ...
-  {
-    id: '1',
-    nome: 'TechSolutions Ltda',
-    documento: '12.345.678/0001-90',
-    endereco: 'Av. Paulista, 1000 - SP',
-    telefone: '(11) 99999-8888',
-    ativos: 12,
-    ticketsAbertos: 3
-  },
-  {
-    id: '1111',
-    nome: 'TechSolutions Ltda',
-    documento: '12.345.678/0001-90',
-    endereco: 'Av. Paulista, 1000 - SP',
-    telefone: '(11) 99999-8888',
-    ativos: 12,
-    ticketsAbertos: 3
-  },
-  {
-    id: '331',
-    nome: 'TechSolutions Ltda',
-    documento: '12.345.678/0001-90',
-    endereco: 'Av. Paulista, 1000 - SP',
-    telefone: '(11) 99999-8888',
-    ativos: 12,
-    ticketsAbertos: 3
-  },
-  {
-    id: '21',
-    nome: 'TechSolutions Ltda',
-    documento: '12.345.678/0001-90',
-    endereco: 'Av. Paulista, 1000 - SP',
-    telefone: '(11) 99999-8888',
-    ativos: 12,
-    ticketsAbertos: 3
-  },
-  {
-    id: '121',
-    nome: 'TechSolutions Ltda',
-    documento: '12.345.678/0001-90',
-    endereco: 'Av. Paulista, 1000 - SP',
-    telefone: '(11) 99999-8888',
-    ativos: 12,
-    ticketsAbertos: 3
-  },
-  {
-    id: '111',
-    nome: 'TechSolutions Ltda',
-    documento: '12.345.678/0001-90',
-    endereco: 'Av. Paulista, 1000 - SP',
-    telefone: '(11) 99999-8888',
-    ativos: 12,
-    ticketsAbertos: 3
-  },
-  {
-    id: '13',
-    nome: 'TechSolutions Ltda',
-    documento: '12.345.678/0001-90',
-    endereco: 'Av. Paulista, 1000 - SP',
-    telefone: '(11) 99999-8888',
-    ativos: 12,
-    ticketsAbertos: 3
-  },
-  {
-    id: '12',
-    nome: 'TechSolutions Ltda',
-    documento: '12.345.678/0001-90',
-    endereco: 'Av. Paulista, 1000 - SP',
-    telefone: '(11) 99999-8888',
-    ativos: 12,
-    ticketsAbertos: 3
-  },
-  {
-    id: '11',
-    nome: 'TechSolutions Ltda',
-    documento: '12.345.678/0001-90',
-    endereco: 'Av. Paulista, 1000 - SP',
-    telefone: '(11) 99999-8888',
-    ativos: 12,
-    ticketsAbertos: 3
-  },
-  {
-    id: '2',
-    nome: 'Hospital Santa Clara',
-    documento: '98.765.432/0001-10',
-    endereco: 'Rua das Flores, 500 - RJ',
-    telefone: '(21) 3333-2222',
-    ativos: 45,
-    ticketsAbertos: 1
-  },
-  {
-    id: '3',
-    nome: 'Escola Futuro do Saber',
-    documento: '45.123.890/0001-55',
-    endereco: 'Alameda Santos, 40 - SP',
-    telefone: '(11) 3030-4040',
-    ativos: 5,
-    ticketsAbertos: 0
-  },
-  {
-    id: '4',
-    nome: 'Advocacia Mendes & Filhos',
-    documento: '11.222.333/0001-00',
-    endereco: 'Centro Civico, Sala 12 - PR',
-    telefone: '(41) 98888-7777',
-    ativos: 2,
-    ticketsAbertos: 0
-  },
-];
-
 export function Clients() {
   const searchTerm = useAtomValue(searchTermAtom);
+  const clients = useAtomValue(clientsAtom); // Lê os dados reais da API/Cache
 
-  const filteredClients = MOCK_CLIENTES.filter(client => {
+  const filteredClients = clients.filter(client => {
     const searchLower = searchTerm.toLowerCase();
     if (!searchLower) return true;
     return (
-      client.nome.toLowerCase().includes(searchLower) ||
+      client.razao_social.toLowerCase().includes(searchLower) ||
       client.documento.includes(searchLower)
     );
   });
@@ -2238,7 +2358,7 @@ export function Clients() {
       <div className={styles.gridContainer}>
         {filteredClients.length === 0 && (
           <div style={{ gridColumn: '1/-1', textAlign: 'center', color: '#94a3b8', marginTop: '2rem' }}>
-            Nenhum cliente encontrado para "{searchTerm}"
+            Nenhum cliente encontrado.
           </div>
         )}
 
@@ -2252,6 +2372,39 @@ export function Clients() {
 </file>
 
 <file path="src/pages/dashboard/Dashboard.module.css">
+/* Dashboard.module.css */
+
+.chartsGrid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+    align-items: stretch;
+    width: 100%; /* Garante largura total */
+}
+
+.chartCard {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    
+    /* CRÍTICO: Impede que o Recharts tente expandir o grid infinitamente */
+    min-width: 0; 
+    min-height: 400px; 
+}
+
+.chartWrapper {
+    width: 100%;
+    flex: 1;
+    min-height: 0; /* Permite que o flexbox controle o tamanho */
+    position: relative;
+}
+
+/* ===========================
+   CONTAINER PRINCIPAL
+   =========================== */
 .container {
     width: 100%;
     max-width: 1500px;
@@ -2260,17 +2413,21 @@ export function Clients() {
     overflow-y: auto;
     padding-bottom: 2rem;
     padding-right: 0.5rem;
+    scrollbar-width: none;
 }
 
 .container::-webkit-scrollbar {
     width: 6px;
 }
+
 .container::-webkit-scrollbar-thumb {
     background-color: #cbd5e1;
     border-radius: 20px;
 }
 
-/* --- HEADER DE BOAS VINDAS --- */
+/* ===========================
+   HEADER
+   =========================== */
 .header {
     margin-bottom: 2rem;
     padding-top: 1rem;
@@ -2292,7 +2449,9 @@ export function Clients() {
     font-size: 0.95rem;
 }
 
-/* --- GRID DE KPIS (Cards do Topo) --- */
+/* ===========================
+   GRID DE KPIs
+   =========================== */
 .kpiGrid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -2349,29 +2508,23 @@ export function Clients() {
     margin-top: auto;
 }
 
-.trendPositive { color: #16a34a; }
-.trendNegative { color: #ef4444; }
-
-/* --- ÁREA DOS GRÁFICOS --- */
-.chartsGrid {
-    display: grid;
-    grid-template-columns: 2fr 1fr; /* O gráfico de linha ocupa 2/3 */
-    gap: 1.5rem;
-    margin-bottom: 2rem;
+.trendPositive {
+    color: #16a34a;
 }
+
+.trendNegative {
+    color: #ef4444;
+}
+
+/* ===========================
+   ÁREA DOS GRÁFICOS
+   =========================== */
+
 
 @media (max-width: 1024px) {
-    .chartsGrid { grid-template-columns: 1fr; }
-}
-
-.chartCard {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 16px;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
-    display: flex;
-    flex-direction: column;
+    .chartsGrid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .chartTitle {
@@ -2381,7 +2534,9 @@ export function Clients() {
     color: #1e293b;
 }
 
-/* --- ALERTA DE TONER (Lista Rápida) --- */
+/* ===========================
+   ALERTAS
+   =========================== */
 .alertList {
     display: flex;
     flex-direction: column;
@@ -2419,164 +2574,184 @@ export function Clients() {
 </file>
 
 <file path="src/pages/dashboard/Dashboard.tsx">
-import { 
-    Ticket, Printer, Users, TrendingUp, TrendingDown 
+import {
+    Ticket,
+    Printer,
+    Users,
+    TrendingUp,
+    TrendingDown
 } from 'lucide-react';
-import { 
-    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    PieChart, Pie, Cell, Legend
+
+import {
+    AreaChart,
+    Area,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+    PieChart,
+    Pie,
+    Cell,
+    Legend
 } from 'recharts';
+
 import styles from './Dashboard.module.css';
 
 // --- MOCK DATA ---
 const DATA_TICKETS = [
-  { name: 'Seg', tickets: 4 },
-  { name: 'Ter', tickets: 7 },
-  { name: 'Qua', tickets: 5 },
-  { name: 'Qui', tickets: 12 }, // Pico
-  { name: 'Sex', tickets: 9 },
-  { name: 'Sáb', tickets: 3 },
-  { name: 'Dom', tickets: 2 },
+    { name: 'Seg', tickets: 4 },
+    { name: 'Ter', tickets: 7 },
+    { name: 'Qua', tickets: 5 },
+    { name: 'Qui', tickets: 12 },
+    { name: 'Sex', tickets: 9 },
+    { name: 'Sáb', tickets: 3 },
+    { name: 'Dom', tickets: 2 },
 ];
 
 const DATA_STATUS = [
-  { name: 'Online', value: 45, color: '#22c55e' },
-  { name: 'Offline', value: 5, color: '#ef4444' },
-  { name: 'Alerta', value: 8, color: '#f59e0b' },
+    { name: 'Online', value: 45, color: '#22c55e' },
+    { name: 'Offline', value: 5, color: '#ef4444' },
+    { name: 'Alerta', value: 8, color: '#f59e0b' },
 ];
 
 export function Dashboard() {
-  const userName = "Gabriel"; // Viria do Auth/Recoil
-  const today = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+    const userName = 'Gabriel';
+    const today = new Date().toLocaleDateString('pt-BR', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+    });
 
-  return (
-    <div className={styles.container}>
-      
-      {/* Header Diferenciado */}
-      <header className={styles.header}>
-        <h1 className={styles.welcomeText}>
-           Olá, {userName} <span style={{fontSize: '1.5rem'}}>👋</span>
-        </h1>
-        <p className={styles.subText}>Aqui está o resumo do seu parque de impressão hoje, <span style={{textTransform: 'capitalize'}}>{today}</span>.</p>
-      </header>
+    return (
+        <div className={styles.container}>
+            {/* Header */}
+            <header className={styles.header}>
+                <h1 className={styles.welcomeText}>
+                    Olá, {userName} <span style={{ fontSize: '1.5rem' }}>👋</span>
+                </h1>
+                <p className={styles.subText}>
+                    Aqui está o resumo do seu parque de impressão hoje,&nbsp;
+                    <span style={{ textTransform: 'capitalize' }}>{today}</span>.
+                </p>
+            </header>
 
-      {/* Grid de KPIs */}
-      <div className={styles.kpiGrid}>
-         {/* KPI 1: Tickets */}
-         <div className={styles.kpiCard}>
-            <div className={styles.kpiHeader}>
-                <div>
-                    <span className={styles.kpiLabel}>Novos Tickets</span>
-                    <div className={styles.kpiValue}>12</div>
+            {/* KPIs */}
+            <div className={styles.kpiGrid}>
+
+                <div className={styles.kpiCard}>
+                    <div className={styles.kpiHeader}>
+                        <div>
+                            <span className={styles.kpiLabel}>Novos Tickets</span>
+                            <div className={styles.kpiValue}>12</div>
+                        </div>
+                        <div
+                            className={styles.kpiIcon}
+                            style={{ background: '#eff6ff', color: '#3b82f6' }}
+                        >
+                            <Ticket size={20} />
+                        </div>
+                    </div>
+                    <div className={`${styles.kpiTrend} ${styles.trendPositive}`}>
+                        <TrendingUp size={14} /> +15% essa semana
+                    </div>
                 </div>
-                <div className={styles.kpiIcon} style={{background: '#eff6ff', color: '#3b82f6'}}>
-                    <Ticket size={20} />
+
+                <div className={styles.kpiCard}>
+                    <div className={styles.kpiHeader}>
+                        <div>
+                            <span className={styles.kpiLabel}>Impressoras Online</span>
+                            <div className={styles.kpiValue}>
+                                45
+                                <span style={{ fontSize: '1rem', color: '#94a3b8' }}>
+                                    /58
+                                </span>
+                            </div>
+                        </div>
+                        <div
+                            className={styles.kpiIcon}
+                            style={{ background: '#dcfce7', color: '#16a34a' }}
+                        >
+                            <Printer size={20} />
+                        </div>
+                    </div>
+                    <div className={`${styles.kpiTrend} ${styles.trendNegative}`}>
+                        <TrendingDown size={14} /> -2 conexões hoje
+                    </div>
+                </div>
+
+                <div className={styles.kpiCard}>
+                    <div className={styles.kpiHeader}>
+                        <div>
+                            <span className={styles.kpiLabel}>Total Clientes</span>
+                            <div className={styles.kpiValue}>24</div>
+                        </div>
+                        <div
+                            className={styles.kpiIcon}
+                            style={{ background: '#fef3c7', color: '#d97706' }}
+                        >
+                            <Users size={20} />
+                        </div>
+                    </div>
+                    <div className={`${styles.kpiTrend} ${styles.trendPositive}`}>
+                        <TrendingUp size={14} /> +2 novos esse mês
+                    </div>
                 </div>
             </div>
-            <div className={`${styles.kpiTrend} ${styles.trendPositive}`}>
-                <TrendingUp size={14} /> +15% essa semana
-            </div>
-         </div>
 
-         {/* KPI 2: Impressoras Ativas */}
-         <div className={styles.kpiCard}>
-            <div className={styles.kpiHeader}>
-                <div>
-                    <span className={styles.kpiLabel}>Impressoras Online</span>
-                    <div className={styles.kpiValue}>45<span style={{fontSize:'1rem', color:'#94a3b8'}}>/58</span></div>
+            {/* Gráficos */}
+            <div className={styles.chartsGrid}>
+                {/* Area Chart */}
+                <div className={styles.chartCard}>
+                    <h3 className={styles.chartTitle}>Volume de Chamados (7 Dias)</h3>
+                    <div className={styles.chartWrapper}>
+                        {/* SOLUÇÃO: Usamos height={300} fixo para garantir que nunca seja -1, 
+                           mas mantemos width="100%" para a responsividade horizontal.
+                        */}
+                        <ResponsiveContainer width="100%" height={300}>
+                            <AreaChart data={DATA_TICKETS} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="colorTickets" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#8884d8" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="#8884d8" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                                <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                                <Area type="monotone" dataKey="tickets" stroke="#8884d8" strokeWidth={3} fill="url(#colorTickets)" />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
                 </div>
-                <div className={styles.kpiIcon} style={{background: '#dcfce7', color: '#16a34a'}}>
-                    <Printer size={20} />
+
+                {/* Pie Chart */}
+                <div className={styles.chartCard}>
+                    <h3 className={styles.chartTitle}>Status do Parque</h3>
+                    <div className={styles.chartWrapper}>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <PieChart>
+                                <Pie
+                                    data={DATA_STATUS}
+                                    dataKey="value"
+                                    innerRadius={60}
+                                    outerRadius={80}
+                                    paddingAngle={5}
+                                >
+                                    {DATA_STATUS.map((entry, index) => (
+                                        <Cell key={index} fill={entry.color} />
+                                    ))}
+                                </Pie>
+                                <Tooltip />
+                                <Legend verticalAlign="bottom" height={36} wrapperStyle={{ paddingTop: '20px' }} />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
                 </div>
             </div>
-            <div className={`${styles.kpiTrend} ${styles.trendNegative}`}>
-                <TrendingDown size={14} /> -2 conexões hoje
-            </div>
-         </div>
-
-         {/* KPI 3: Clientes */}
-         <div className={styles.kpiCard}>
-            <div className={styles.kpiHeader}>
-                <div>
-                    <span className={styles.kpiLabel}>Total Clientes</span>
-                    <div className={styles.kpiValue}>24</div>
-                </div>
-                <div className={styles.kpiIcon} style={{background: '#fef3c7', color: '#d97706'}}>
-                    <Users size={20} />
-                </div>
-            </div>
-            <div className={`${styles.kpiTrend} ${styles.trendPositive}`}>
-                <TrendingUp size={14} /> +2 novos esse mês
-            </div>
-         </div>
-      </div>
-
-      {/* Gráficos e Alertas */}
-      <div className={styles.chartsGrid}>
-          
-          {/* Gráfico Principal: Volume de Tickets */}
-          <div className={styles.chartCard}>
-             <h3 className={styles.chartTitle}>Volume de Chamados (7 Dias)</h3>
-             <div style={{ width: '100%', height: 300 }}>
-                <ResponsiveContainer>
-                    <AreaChart data={DATA_TICKETS}>
-                        <defs>
-                            <linearGradient id="colorTickets" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#8884d8" stopOpacity={0.3}/>
-                                <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
-                            </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                        <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                        <Tooltip 
-                            contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}} 
-                        />
-                        <Area 
-                            type="monotone" 
-                            dataKey="tickets" 
-                            stroke="#8884d8" 
-                            strokeWidth={3}
-                            fillOpacity={1} 
-                            fill="url(#colorTickets)" 
-                        />
-                    </AreaChart>
-                </ResponsiveContainer>
-             </div>
-          </div>
-
-          {/* Coluna Direita: Status Pizza + Alertas de Toner */}
-          <div style={{display:'flex', flexDirection:'column', gap: '1.5rem'}}>
-             
-             {/* Gráfico Pizza */}
-             <div className={styles.chartCard} style={{height: '300px'}}>
-                 <h3 className={styles.chartTitle}>Status do Parque</h3>
-                 <div style={{ width: '100%', height: '100%' }}>
-                    <ResponsiveContainer>
-                        <PieChart>
-                            <Pie
-                                data={DATA_STATUS}
-                                innerRadius={60}
-                                outerRadius={80}
-                                paddingAngle={5}
-                                dataKey="value"
-                            >
-                                {DATA_STATUS.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.color} />
-                                ))}
-                            </Pie>
-                            <Tooltip />
-                            <Legend wrapperStyle={{ paddingTop: '20px' }} verticalAlign="bottom" height={36}/>
-                        </PieChart>
-                    </ResponsiveContainer>
-                 </div>
-             </div>
-
-          </div>
-      </div>
-
-    </div>
-  );
+        </div>
+    );
 }
 </file>
 
@@ -2601,6 +2776,7 @@ export function Dashboard() {
     padding-bottom: 2rem;
     padding-top: .4rem;
     padding-right: 0.5rem;
+    scrollbar-width: none;
 }
 
 .gridContainer::-webkit-scrollbar {
@@ -2616,40 +2792,27 @@ export function Dashboard() {
 <file path="src/pages/printers/Printers.tsx">
 import { Printer as PrinterIcon } from 'lucide-react';
 import { useAtomValue } from 'jotai';
-import { searchTermAtom } from '../../state/atoms';
+import { searchTermAtom, printersAtom } from '../../state/atoms'; // Importando atom real
 import styles from './Printers.module.css';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { PrinterCard } from '../../components/cards/PrinterCard';
-import type PrinterData from '../../types/printer';
-
-// Mock de dados
-const MOCK_PRINTERS: PrinterData[] = [
-  { id: '1', modelo: 'Kyocera Ecosys M2040', serial: 'VXC829921', contador: 14502, status: 'online' },
-  { id: '2', modelo: 'HP LaserJet Pro M428', serial: 'PHJ102399', contador: 5890, status: 'online' },
-  { id: '3', modelo: 'Brother DCP-L2540', serial: 'BR9928110', contador: 89000, status: 'offline'},
-  { id: '4', modelo: 'Ricoh MP 301', serial: 'RC301922', contador: 120, status: 'warning'},
-  { id: '5', modelo: 'Samsung Xpress M2020', serial: 'Z3D912K', contador: 1200, status: 'online'},
-  { id: '11', modelo: 'Kyocera Ecosys M2040', serial: 'VXC829921', contador: 14502, status: 'online' },
-  { id: '22', modelo: 'HP LaserJet Pro M428', serial: 'PHJ102399', contador: 5890, status: 'online' },
-  { id: '31', modelo: 'Brother DCP-L2540', serial: 'BR9928110', contador: 89000, status: 'offline'},
-  { id: '41', modelo: 'Ricoh MP 301', serial: 'RC301922', contador: 120, status: 'warning'},
-  { id: '51', modelo: 'Samsung Xpress M2020', serial: 'Z3D912K', contador: 1200, status: 'online'},
-];
 
 export function Printers() {
   const searchTerm = useAtomValue(searchTermAtom);
+  const rawPrinters = useAtomValue(printersAtom); // Dados vindos da API (via Layout)
 
-  const filteredPrinters = MOCK_PRINTERS.filter(printer => {
+  // Filtra usando os dados formatados
+  const filteredPrinters = rawPrinters.filter(printer => {
     const searchLower = searchTerm.toLowerCase();
     if (!searchLower) return true;
     return (
         printer.modelo.toLowerCase().includes(searchLower) ||
-        printer.serial.toLowerCase().includes(searchLower) 
+        printer.serial_number.toLowerCase().includes(searchLower) 
     );
   });
 
   const handleNewPrinter = () => {
-    alert("Modal de Nova Impressora");
+    alert("Em breve: Modal de Nova Impressora integrado ao Backend");
   };
 
   return (
@@ -2717,40 +2880,26 @@ export function Printers() {
 <file path="src/pages/technicians/Technicians.tsx">
 import { UserPlus } from 'lucide-react';
 import { useAtomValue } from 'jotai';
-import { searchTermAtom } from '../../state/atoms';
+import { searchTermAtom, techniciansAtom } from '../../state/atoms';
 import styles from './Technicians.module.css';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { TechnicianCard } from '../../components/cards/TechnicianCard';
-import type TechnicianData from '../../types/techinicians';
-
-// Mock de dados
-const MOCK_TECNICOS: TechnicianData[] = [
-  { id: '12', nome: 'Carlos Souza', email: 'carlos.souza@nkw.com', status: 'ativo' },
-  { id: '22', nome: 'Ana Paula', email: 'ana.paula@nkw.com', status: 'ativo' },
-  { id: '32', nome: 'Roberto Alves', email: 'roberto.alves@nkw.com', status: 'inativo' },
-  { id: '42', nome: 'Fernanda Lima', email: 'fernanda.lima@nkw.com', status: 'ativo' },
-  { id: '52', nome: 'João Pedro', email: 'joao.pedro@nkw.com', status: 'ativo' },
-  { id: '1', nome: 'Carlos Souza', email: 'carlos.souza@nkw.com', status: 'ativo' },
-  { id: '2', nome: 'Ana Paula', email: 'ana.paula@nkw.com', status: 'ativo' },
-  { id: '3', nome: 'Roberto Alves', email: 'roberto.alves@nkw.com', status: 'inativo' },
-  { id: '4', nome: 'Fernanda Lima', email: 'fernanda.lima@nkw.com', status: 'ativo' },
-  { id: '5', nome: 'João Pedro', email: 'joao.pedro@nkw.com', status: 'ativo' },
-];
 
 export function Technicians() {
   const searchTerm = useAtomValue(searchTermAtom);
+  const rawTechnicians = useAtomValue(techniciansAtom); 
 
-  const filteredTechnicians = MOCK_TECNICOS.filter(tech => {
+  const filteredTechnicians = rawTechnicians.filter(tech => {
     const searchLower = searchTerm.toLowerCase();
     if (!searchLower) return true;
     return (
-        tech.nome.toLowerCase().includes(searchLower) ||
-        tech.email.toLowerCase().includes(searchLower)
+        tech.profiles[0].nome.toLowerCase().includes(searchLower) ||
+        tech.profiles[0].email.toLowerCase().includes(searchLower)
     );
   });
 
   const handleNewTechnician = () => {
-    alert("Modal de Cadastro de Técnico");
+    alert("Em breve: Modal de Cadastro integrado ao Backend");
   };
 
   return (
@@ -2759,7 +2908,7 @@ export function Technicians() {
       <PageHeader
         title="Equipe Técnica"
         description="Gerencie os técnicos e permissões"
-        actionIcon={<UserPlus size={20} />} // Ícone específico de add user
+        actionIcon={<UserPlus size={20} />}
         actionLabel="Novo Técnico"
         onActionClick={handleNewTechnician}
         searchPlaceholder="Buscar por nome ou email..."
@@ -2916,82 +3065,36 @@ export function Technicians() {
 import { useState } from 'react';
 import { Plus } from 'lucide-react'; 
 import { useAtomValue, useSetAtom } from 'jotai';
-import { searchTermAtom, createTicketModalAtom } from '../../state/atoms';
+import { searchTermAtom, createTicketModalAtom, ticketsAtom } from '../../state/atoms'; // Importando o atom real
 import styles from './Tickets.module.css';
 import { CreateTicketModal } from '../../components/modals/CreateTicketModal';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { TicketCard } from '../../components/cards/TicketCard';
 
-const MOCK_TICKETS = [
-  // ... MOCK_TICKETS continua o mesmo ...
-  { 
-    id: '#TK-9021', 
-    titulo: 'Impressora não puxa papel', 
-    cliente: 'Advocacia Silva', 
-    ativo: 'Kyocera Ecosys M2040', 
-    status: 'aberto', 
-    data: '12/12/2025',
-    descricao: 'A impressora faz barulho de engrenagem mas o papel não sobe. Aparentemente rolete gasto.',
-    tecnico: 'Pendente'
-  },
-  { 
-    id: '#TK-9020', 
-    titulo: 'Troca de Toner Ciano', 
-    cliente: 'Hospital Central', 
-    ativo: 'HP Laserjet Pro', 
-    status: 'resolvido', 
-    data: '10/12/2025',
-    descricao: 'Solicitação de troca de suprimento preventiva.',
-    tecnico: 'Carlos Souza'
-  },
-  { 
-    id: '#TK-9019', 
-    titulo: 'Erro de fusor 50.1', 
-    cliente: 'Supermercado Dia', 
-    ativo: 'Brother 8157', 
-    status: 'andamento', 
-    data: '09/12/2025',
-    descricao: 'Erro intermitente no painel. Reinicia e volta, mas trava depois de 10 paginas.',
-    tecnico: 'Ana Paula'
-  },
-  { 
-    id: '#TK-90191', 
-    titulo: 'Erro de fusor 50.1', 
-    cliente: 'Supermercado Dia', 
-    ativo: 'Brother 8157', 
-    status: 'andamento', 
-    data: '09/12/2025',
-    descricao: 'Erro intermitente no painel. Reinicia e volta, mas trava depois de 10 paginas.',
-    tecnico: 'Ana Paula'
-  },
-  { 
-    id: '#TK-90192', 
-    titulo: 'Erro de fusor 50.1', 
-    cliente: 'Supermercado Dia', 
-    ativo: 'Brother 8157', 
-    status: 'andamento', 
-    data: '09/12/2025',
-    descricao: 'Erro intermitente no painel. Reinicia e volta, mas trava depois de 10 paginas.',
-    tecnico: 'Ana Paula'
-  },
-];
+
+//const shortId = `#TK-${ticket.id.slice(0, 4).toUpperCase()}`;
 
 export function Tickets() {
   const [expandedTicketId, setExpandedTicketId] = useState<string | null>(null);
+  
+  // Estados globais
   const searchTerm = useAtomValue(searchTermAtom);
   const setIsModalOpen = useSetAtom(createTicketModalAtom);
+  const rawTickets = useAtomValue(ticketsAtom); // Dados vindos da API (via Layout)
 
   const toggleExpand = (id: string) => {
     setExpandedTicketId(current => current === id ? null : id);
   };
 
-  const filteredTickets = MOCK_TICKETS.filter(ticket => {
+  // Filtro sobre os dados formatados
+  const filteredTickets = rawTickets.filter(ticket => {
     const searchLower = searchTerm.toLowerCase();
     if (!searchLower) return true;
     return (
-      ticket.id.toLowerCase().includes(searchLower) ||
-      ticket.cliente.toLowerCase().includes(searchLower) ||
-      ticket.ativo.toLowerCase().includes(searchLower)
+      ticket.id.toLowerCase().includes(searchLower) || // Busca pelo ID curto
+      ticket.clientes.razao_social.toLowerCase().includes(searchLower) ||
+      ticket.ativos.serial_number.toLowerCase().includes(searchLower) ||
+      ticket.titulo.toLowerCase().includes(searchLower)
     );
   });
 
@@ -3010,14 +3113,14 @@ export function Tickets() {
       <div className={styles.listContainer}>
         {filteredTickets.length === 0 && (
           <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: '2rem' }}>
-            Nenhum ticket encontrado para "{searchTerm}"
+            Nenhum ticket encontrado.
           </div>
         )}
 
         {filteredTickets.map(ticket => (
           <TicketCard
             key={ticket.id}
-            data={ticket}
+            data={ticket} 
             isExpanded={expandedTicketId === ticket.id}
             onToggle={() => toggleExpand(ticket.id)}
           />
@@ -3033,60 +3136,141 @@ export function Tickets() {
 }
 </file>
 
+<file path="src/services/api.ts">
+import axios from 'axios';
+import { supabase } from '../lib/supabase';
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
+});
+
+// Interceptor: Antes de cada request, pega o token do Supabase
+api.interceptors.request.use(async (config) => {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
+});
+
+export default api;
+</file>
+
 <file path="src/state/atoms.ts">
 import { atom } from 'jotai';
+// CORREÇÃO AQUI: Adicionado 'type' antes das chaves ou dentro delas
+import type { Session } from '@supabase/supabase-js'; 
 
-// 1. Estado da Busca
+import type ClientData from '../types/client';
+import type PrinterData from '../types/printer';
+import type TechnicianData from '../types/techinicians';
+import type TicketData from '../types/ticket';
+
+// --- ESTADO DE SESSÃO ---
+export const sessionAtom = atom<Session | null>(null);
+export const userProfileAtom = atom<unknown>(null); // Para guardar dados extras do usuário (nome, avatar)
+
+// --- ESTADO DA APLICAÇÃO (CACHE GLOBAL) ---
+export const clientsAtom = atom<ClientData[]>([]);
+export const printersAtom = atom<PrinterData[]>([]);
+export const techniciansAtom = atom<TechnicianData[]>([]);
+export const ticketsAtom = atom<TicketData[]>([]);
+
+// --- ESTADO DE INTERFACE ---
 export const searchTermAtom = atom('');
-
-// 2. Estado do Modal
 export const createTicketModalAtom = atom(false);
-
-// 3. Estado da Página Atual
-export const currentPageAtom = atom('tickets');
+export const currentPageAtom = atom('dashboard');
+export const isLoadingDataAtom = atom(false); // Para mostrar loading geral
 </file>
 
 <file path="src/types/client.ts">
+import type ProfileData from "./profile";
+
 export default interface ClientData {
   id: string;
-  nome: string;
+  tenant_id: string;
+  razao_social: string;
   documento: string;
   endereco: string;
+  profiles: ProfileData[];
   telefone: string;
   ativos: number;
   ticketsAbertos: number;
+  created_at: string;
+  updated_at: string;
 }
 </file>
 
 <file path="src/types/printer.ts">
 export default interface PrinterData {
   id: string;
+  tenant_id: string;
+  cliente_id: string;
   modelo: string;
-  serial: string;
-  contador: number;
+  serial_number: string;
   status: 'online' | 'offline' | 'warning';
+  contador_atual: number;
+  created_at: string;
+  updated_at: string;
+  clientes: {
+    id: string;
+    razao_social: string;
+  }
+}
+</file>
+
+<file path="src/types/profile.ts">
+export default interface ProfileData {
+  id: string;
+  email: string;
+  avatar_url: string;
+  nome: string;
 }
 </file>
 
 <file path="src/types/techinicians.ts">
+import type ProfileData from "./profile";
+
 export default interface TechnicianData {
   id: string;
-  nome: string;
-  email: string;
+  tenant_id: string;
   status: 'ativo' | 'inativo';
+  created_at: string;
+  updated_at: string;
+  profiles: ProfileData[]
 }
 </file>
 
 <file path="src/types/ticket.ts">
 export default interface TicketData {
   id: string;
+  tenant_id: string;
+  cliente_id: string;
+  ativo_id: string;
+  tecnico_id: string;
   titulo: string;
-  cliente: string;
-  ativo: string;
-  status: string;
-  data: string;
   descricao: string;
-  tecnico: string;
+  prioridade: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  clientes: {
+    razao_social: string
+  }
+  ativos: {
+    modelo: string;
+    serial_number: string
+  }
+  tecnicos: {
+    id: string;
+    profiles: {
+      email: string;
+      nome: string;
+    }
+  }
 }
 </file>
 

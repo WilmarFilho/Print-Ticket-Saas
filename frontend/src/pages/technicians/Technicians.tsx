@@ -1,25 +1,81 @@
+import { useState } from 'react';
 import { UserPlus } from 'lucide-react';
-import { useAtomValue } from 'jotai';
-import { searchTermAtom, techniciansAtom } from '../../state/atoms';
+import { useAtom, useAtomValue } from 'jotai';
+import { 
+    searchTermAtom, 
+    techniciansAtom, 
+    sessionAtom 
+} from '../../state/atoms';
 import styles from './Technicians.module.css';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { TechnicianCard } from '../../components/cards/TechnicianCard';
+import { TechnicianModal } from '../../components/modals/TechnicianModal';
+import api from '../../services/api';
+import type TechnicianData from '../../types/techinicians';
+import type { PayloadTecnico } from '../../types/techinicians';
 
 export function Technicians() {
   const searchTerm = useAtomValue(searchTermAtom);
-  const rawTechnicians = useAtomValue(techniciansAtom); 
+  const [technicians, setTechnicians] = useAtom(techniciansAtom);
+  const session = useAtomValue(sessionAtom);
 
-  const filteredTechnicians = rawTechnicians.filter(tech => {
+  // Estados do Modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingTech, setEditingTech] = useState<TechnicianData | null>(null);
+
+  const filteredTechnicians = technicians.filter(tech => {
     const searchLower = searchTerm.toLowerCase();
-    if (!searchLower) return true;
+    const profile = tech.profiles?.[0];
+    if (!searchLower || !profile) return true;
+    
     return (
-        tech.profiles[0].nome.toLowerCase().includes(searchLower) ||
-        tech.profiles[0].email.toLowerCase().includes(searchLower)
+        profile.nome.toLowerCase().includes(searchLower) ||
+        profile.email.toLowerCase().includes(searchLower)
     );
   });
 
   const handleNewTechnician = () => {
-    alert("Em breve: Modal de Cadastro integrado ao Backend");
+    setEditingTech(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditTechnician = (tech: TechnicianData) => {
+    setEditingTech(tech);
+    setIsModalOpen(true);
+  };
+
+  const handleSaveTechnician = async (formData: PayloadTecnico) => {
+    const tenantId = session?.user?.user_metadata?.tenant_id;
+
+    if (!tenantId) {
+      alert("Sessão inválida. Faça login novamente.");
+      return;
+    }
+
+    // Payload para o Backend
+    const payload = { ...formData, tenant_id: tenantId };
+
+    try {
+      if (editingTech) {
+        // ATUALIZAR (PATCH)
+        console.log(payload)
+        const { data } = await api.patch(`/tecnicos/${editingTech.id}`, payload);
+        
+        // Atualiza estado local
+        setTechnicians(prev => prev.map(t => t.id === editingTech.id ? data : t));
+      } else {
+        // CRIAR (POST)
+        const { data } = await api.post('/tecnicos', payload);
+        
+        // Adiciona ao estado local
+        setTechnicians(prev => [data, ...prev]);
+      }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      console.error("Erro ao salvar técnico:", error);
+      alert(error.response?.data?.message || "Erro ao salvar técnico.");
+      throw error;
+    }
   };
 
   return (
@@ -43,9 +99,20 @@ export function Technicians() {
         )}
 
         {filteredTechnicians.map(tech => (
-            <TechnicianCard key={tech.id} data={tech} />
+            <TechnicianCard 
+                key={tech.id} 
+                data={tech} 
+                onEdit={handleEditTechnician}
+            />
         ))}
       </div>
+
+      <TechnicianModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSaveTechnician}
+        initialData={editingTech}
+      />
 
     </section>
   );

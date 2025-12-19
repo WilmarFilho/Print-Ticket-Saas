@@ -4,15 +4,17 @@ import type PrinterData from '../../types/printer';
 
 interface PrinterCardProps {
   data: PrinterData;
+  onEdit?: (printer: PrinterData) => void;
 }
 
-export function PrinterCard({ data }: PrinterCardProps) {
+export function PrinterCard({ data, onEdit }: PrinterCardProps) {
   
   const getStatusColor = () => {
     switch(data.status) {
         case 'online': return styles.online;
         case 'offline': return styles.offline;
-        case 'warning': return styles.warning;
+        case 'instavel': return styles.warning;
+        default: return styles.offline;
     }
   };
 
@@ -23,9 +25,16 @@ export function PrinterCard({ data }: PrinterCardProps) {
   };
 
   return (
-    <div className={styles.card}>
+    <div 
+      className={styles.card} 
+      onClick={() => onEdit && onEdit(data)} // O clique no card abre o modal
+      role="button" // Acessibilidade: indica que é clicável
+      tabIndex={0}  // Acessibilidade: permite focar com Tab
+    >
 
       <div className={`${styles.statusBar} ${getStatusColor()}`} />
+
+      {/* Removemos o botão de Lápis/Edit aqui */}
 
       <div className={styles.cardContent}>
         <div className={styles.header}>
@@ -46,7 +55,6 @@ export function PrinterCard({ data }: PrinterCardProps) {
             {getStatusIcon()}
             <span style={{textTransform: 'capitalize'}}>{data.status}</span>
         </div>
-
       </div>
 
       <div className={styles.metricsFooter}>

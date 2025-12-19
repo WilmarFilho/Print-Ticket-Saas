@@ -8,3 +8,10 @@ export default interface TechnicianData {
   updated_at: string;
   profiles: ProfileData[]
 }
+
+export interface PayloadTecnico {
+    nome: string;
+    email: string;
+    password: string;
+    status: string;
+}

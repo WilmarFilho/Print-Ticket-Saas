@@ -1,108 +1,101 @@
 import {
   Injectable,
   BadRequestException,
-  InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { createClient } from '@supabase/supabase-js';
 import { CreateTecnicoDto } from './dto/create-tecnico.dto';
 import { UpdateTecnicoDto } from './dto/update-tecnico.dto';
 import { SupabaseService } from '../supabase/supabase.service';
 
 @Injectable()
 export class TecnicosService {
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  private getAdminClient() {
+    return createClient(
+      this.configService.get<string>('SUPABASE_URL')!,
+      this.configService.get<string>('SUPABASE_KEY')!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      },
+    );
+  }
 
   async create(createTecnicoDto: CreateTecnicoDto) {
-    const client = this.supabase.getClient();
+    const adminClient = this.getAdminClient();
 
-    // 1. PRIMEIRO PASSO: Criar o Técnico (para gerar o ID que o profile exige)
-    const { data: tecnicoData, error: tecnicoError } = await client
-      .from('tecnicos')
-      .insert({
-        tenant_id: createTecnicoDto.tenant_id,
-        status: createTecnicoDto.status || 'ativo',
-      })
-      .select()
-      .single();
-
-    if (tecnicoError)
-      throw new BadRequestException(
-        `Erro ao iniciar cadastro do técnico: ${tecnicoError.message}`,
-      );
-
-    // --- Bloco de Criação de Usuário (Auth + Profile) ---
-    try {
-      // 2. Criar Usuário no Auth
-      const { data: authData, error: authError } =
-        await client.auth.admin.createUser({
-          email: createTecnicoDto.email,
-          password: createTecnicoDto.password,
-          email_confirm: true,
-          user_metadata: {
-            tenant_id: createTecnicoDto.tenant_id,
-            tipo_usuario: 'tecnico',
-            nome: createTecnicoDto.nome,
-          },
-        });
-
-      if (authError)
-        throw new Error(`Erro ao criar login: ${authError.message}`);
-
-      // 3. Criar o Perfil (Agora sim temos o tecnicoData.id para preencher a FK)
-      const { error: profileError } = await client.from('profiles').insert({
-        id: authData.user.id, // ID do Auth
-        tenant_id: createTecnicoDto.tenant_id,
-        tecnico_id: tecnicoData.id,
-        cliente_id: null, // Garantir que é null
-        nome: createTecnicoDto.nome,
+    const { data: authData, error: authError } =
+      await adminClient.auth.admin.createUser({
         email: createTecnicoDto.email,
-        tipo_usuario: 'tecnico',
+        password: createTecnicoDto.password,
+        email_confirm: true,
+        user_metadata: {
+          tenant_id: createTecnicoDto.tenant_id,
+          tipo_usuario: 'tecnico',
+        },
       });
 
-      if (profileError) {
-        // Se falhar no profile, deleta o usuário do Auth para não ficar órfão
-        await client.auth.admin.deleteUser(authData.user.id);
-        throw new Error(`Erro ao criar perfil: ${profileError.message}`);
-      }
+    if (authError)
+      throw new BadRequestException(
+        `Erro ao criar login: ${authError.message}`,
+      );
 
-      // Sucesso Total
-      return {
-        ...tecnicoData,
-        profile: {
+    try {
+      const { data: tecnicoData, error: tecnicoError } = await adminClient
+        .from('tecnicos')
+        .insert({
+          tenant_id: createTecnicoDto.tenant_id,
+          status: createTecnicoDto.status || 'ativo',
+        })
+        .select()
+        .single();
+
+      if (tecnicoError)
+        throw new Error(`Erro tabela tecnicos: ${tecnicoError.message}`);
+
+      const { error: profileError } = await adminClient
+        .from('profiles')
+        .insert({
+          id: authData.user.id,
+          tenant_id: createTecnicoDto.tenant_id,
+          tecnico_id: tecnicoData.id,
           nome: createTecnicoDto.nome,
           email: createTecnicoDto.email,
-        },
-      };
-    } catch (error) {
-      // ROLLBACK: Se deu erro no Auth ou no Profile, precisamos apagar o técnico criado no passo 1
-      // Senão teremos um técnico "fantasma" sem usuário associado.
-      await client.from('tecnicos').delete().eq('id', tecnicoData.id);
+          tipo_usuario: 'tecnico',
+        });
 
-      throw new BadRequestException(
-        error instanceof Error ? error.message : 'Erro desconhecido',
-      );
+      if (profileError)
+        throw new Error(`Erro tabela profiles: ${profileError.message}`);
+
+      return {
+        ...tecnicoData,
+        profiles: [
+          { nome: createTecnicoDto.nome, email: createTecnicoDto.email },
+        ],
+      };
+    } catch (error: any) {
+      await adminClient.auth.admin.deleteUser(authData.user.id);
+      throw new BadRequestException(error.message);
     }
   }
 
   async findAll() {
-    // Busca na tabela profiles filtrando por tipo (trazendo o ID do tecnico junto)
-    // É mais fácil consultar 'profiles' pois lá tem os nomes, e fazemos o join inverso se precisar
-    // Mas para manter a consistência do endpoint /tecnicos, vamos consultar a tabela tecnicos e trazer o profile associado.
-
-    const { data, error } = await this.supabase
-      .getClient()
-      .from('tecnicos')
-      .select(
-        `
-          *,
-          profiles (
-            id,
-            nome,
-            email,
-            avatar_url
-          )
-        `,
-      )
-      .order('created_at', { ascending: false });
+    const { data, error } = await this.supabase.getClient().from('tecnicos')
+      .select(`
+        *,
+        profiles (
+          nome,
+          email
+        )
+      `);
 
     if (error) throw new BadRequestException(error.message);
     return data;
@@ -118,8 +111,7 @@ export class TecnicosService {
         profiles (
           id,
           nome,
-          email,
-          telefone
+          email
         )
       `,
       )
@@ -131,27 +123,83 @@ export class TecnicosService {
   }
 
   async update(id: string, updateTecnicoDto: UpdateTecnicoDto) {
-    // Atualiza status na tabela tecnicos
-    const { data, error } = await this.supabase
-      .getClient()
-      .from('tecnicos')
-      .update({
-        status: updateTecnicoDto.status,
-      })
-      .eq('id', id)
-      .select()
+    const adminClient = this.getAdminClient();
+
+    const { data: profileData, error: findError } = await adminClient
+      .from('profiles')
+      .select('id, email')
+      .eq('tecnico_id', id)
       .single();
 
-    if (error) throw new BadRequestException(error.message);
-    return data;
+    if (findError || !profileData) {
+      throw new NotFoundException('Perfil do técnico não encontrado.');
+    }
+
+    const authUserId = profileData.id;
+
+    if (updateTecnicoDto.status) {
+      const { error: techError } = await adminClient
+        .from('tecnicos')
+        .update({ status: updateTecnicoDto.status })
+        .eq('id', id);
+
+      if (techError)
+        throw new BadRequestException(
+          `Erro ao atualizar status: ${techError.message}`,
+        );
+    }
+
+    if (updateTecnicoDto.nome || updateTecnicoDto.email) {
+      const { error: profileError } = await adminClient
+        .from('profiles')
+        .update({
+          nome: updateTecnicoDto.nome,
+          email: updateTecnicoDto.email,
+        })
+        .eq('id', authUserId);
+
+      if (profileError)
+        throw new BadRequestException(
+          `Erro ao atualizar perfil: ${profileError.message}`,
+        );
+    }
+
+    if (
+      updateTecnicoDto.email &&
+      updateTecnicoDto.email !== profileData.email
+    ) {
+      const { error: authError } = await adminClient.auth.admin.updateUserById(
+        authUserId,
+        {
+          email: updateTecnicoDto.email,
+          email_confirm: true,
+        },
+      );
+
+      if (authError)
+        throw new BadRequestException(
+          `Erro ao atualizar login (Auth): ${authError.message}`,
+        );
+    }
+
+    if (updateTecnicoDto.password) {
+      const { error: authError } = await adminClient.auth.admin.updateUserById(
+        authUserId,
+        {
+          password: updateTecnicoDto.password,
+        },
+      );
+
+      if (authError)
+        throw new BadRequestException(
+          `Erro ao atualizar login (Auth): ${authError.message}`,
+        );
+    }
+
+    return this.findOne(id);
   }
 
   async remove(id: string) {
-    // Ao deletar o técnico, a constraint 'on delete set null' no profile vai disparar?
-    // Seu SQL diz: tecnico_id uuid references tecnicos(id) on delete set null
-    // Então se deletarmos o técnico, o profile perde o vínculo mas continua existindo como usuário.
-    // Isso é o comportamento desejado? Geralmente sim, para histórico.
-
     const { error } = await this.supabase
       .getClient()
       .from('tecnicos')

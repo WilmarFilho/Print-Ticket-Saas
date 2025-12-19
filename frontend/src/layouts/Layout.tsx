@@ -28,7 +28,7 @@ export function Layout() {
           api.get('/clientes'),
           api.get('/ativos'),   // Assumindo que você criou esse endpoint
           api.get('/tecnicos'), // Assumindo que você criou esse endpoint
-          api.get('/tickets')   // Assumindo que você criou esse endpoint
+          api.get('/tickets'),  // Assumindo que você criou esse endpoint
         ]);
 
         setClients(clientsRes.data);

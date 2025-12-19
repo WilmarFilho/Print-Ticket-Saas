@@ -4,7 +4,7 @@ export default interface PrinterData {
   cliente_id: string;
   modelo: string;
   serial_number: string;
-  status: 'online' | 'offline' | 'warning';
+  status: 'online' | 'offline' | 'instavel' | 'desconhecido';
   contador_atual: number;
   created_at: string;
   updated_at: string;

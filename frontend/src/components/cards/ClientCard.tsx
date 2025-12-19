@@ -1,14 +1,20 @@
-import { Building2, MoreVertical, MapPin, Phone, Printer, Ticket } from 'lucide-react';
+import { Building2, MapPin, Phone, Printer, Ticket } from 'lucide-react';
 import styles from './ClientCard.module.css';
 import type ClientData from '../../types/client';
 
 interface ClientCardProps {
   data: ClientData;
+  onEdit?: (client: ClientData) => void;
 }
 
-export function ClientCard({ data }: ClientCardProps) {
+export function ClientCard({ data, onEdit }: ClientCardProps) {
   return (
-    <div className={styles.clientCard}>
+    <div 
+        className={styles.clientCard}
+        onClick={() => onEdit && onEdit(data)}
+        role="button"
+        tabIndex={0}
+    >
       <div className={styles.cardHeader}>
         <div className={styles.iconBox}>
           <Building2 size={24} />
@@ -17,9 +23,7 @@ export function ClientCard({ data }: ClientCardProps) {
           <h3>{data.razao_social}</h3>
           <p className={styles.docText}>{data.documento}</p>
         </div>
-        <button className={styles.optionsBtn}>
-          <MoreVertical size={18} />
-        </button>
+        {/* Removemos o botão options, pois o card todo é clicável */}
       </div>
 
       <div className={styles.cardBody}>
@@ -37,7 +41,7 @@ export function ClientCard({ data }: ClientCardProps) {
       <div className={styles.cardFooter}>
         <div className={styles.statBadge}>
           <Printer size={14} color="#64748b" />
-          {data.ativos} Ativos
+          {data.ativos || 0} Ativos
         </div>
 
         <div
@@ -45,7 +49,7 @@ export function ClientCard({ data }: ClientCardProps) {
           style={data.ticketsAbertos > 0 ? { background: '#fee2e2', color: '#ef4444' } : {}}
         >
           <Ticket size={14} />
-          {data.ticketsAbertos} Chamados
+          {data.ticketsAbertos || 0} Chamados
         </div>
       </div>
     </div>
